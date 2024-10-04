@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include "functions.h"
-#include "bench.h"
 
 int main(int argc, char* argv[]) {
     int n, m, r, s;
@@ -58,31 +57,30 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-    create_id_matrix(inverse, n, m);
 
 
-    struct timespec time1, time2;
-//solve system
-    gettime(&time1);
+    double time1 = 0, time2 = 0;
+//find inverse matrix
+    time1 = clock();
     //TODO
-    gettime(&time2);
-    double t1 = diff(time1, time2);
+    create_id_matrix(inverse, n, m);
+    time2 = clock();
+    double t1 = (time2 - time1)/CLOCKS_PER_SEC;
 
 //compute discrepancy
     double r1 = 0, r2 = 0;
     double t2 = 0;
     if (n <= 11000) {
-        gettime(&time1);
-        r1 = calculate_discrepancy(matrix, inverse, n, m);
-        r2 = calculate_discrepancy(inverse, matrix, n, m);
-        gettime(&time2);
-        t2 = diff(time1, time2);
+        time1 = clock();
+        //TODO
+        time2 = clock();
+        t2 = (time2 - time1) / CLOCKS_PER_SEC;
     }
 
 //print result
-    print_matrix(matrix, n, m, r);
-    /*printf ("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d\n",
-            argv[0], 19, r1, r2, t1, t2, s, n, m);*/
+    print_matrix(inverse, n, m, r);
+    printf ("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d\n",
+            argv[0], 19, r1, r2, t1, t2, s, n, m);
     delete[] matrix;
     delete[] inverse;
 }
