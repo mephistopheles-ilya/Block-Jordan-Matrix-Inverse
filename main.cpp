@@ -5,7 +5,8 @@
 #include <sys/sysinfo.h>
 #include <unistd.h>
 
-#include "functions.h"
+#include "../functions.h"
+#include "../matrix.h"
 
 int main(int argc, char* argv[]) {
     int n, m, r, s;
@@ -27,13 +28,6 @@ int main(int argc, char* argv[]) {
         printf("Wrong arguments\n");
         return 1;
     }
-
-//stick this thread to core
-    int nproc = get_nprocs();
-    cpu_set_t cpu;
-    CPU_ZERO(&cpu);
-    CPU_SET(nproc - 1, &cpu);
-    sched_setaffinity(getpid(), sizeof(cpu), &cpu);
 
 //allocate matrices
     double* matrix = new(std::nothrow) double[n * n];
@@ -58,29 +52,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    block_mult(matrix, n, n, matrix, n, inverse);
 
-    double time1 = 0, time2 = 0;
-//find inverse matrix
-    time1 = clock();
-    //TODO
-    create_id_matrix(inverse, n, m);
-    time2 = clock();
-    double t1 = (time2 - time1)/CLOCKS_PER_SEC;
-
-//compute discrepancy
-    double r1 = 0, r2 = 0;
-    double t2 = 0;
-    if (n <= 11000) {
-        time1 = clock();
-        //TODO
-        time2 = clock();
-        t2 = (time2 - time1) / CLOCKS_PER_SEC;
-    }
-
-//print result
     print_matrix(inverse, n, m, r);
-    printf ("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d\n",
-            argv[0], 19, r1, r2, t1, t2, s, n, m);
     delete[] matrix;
     delete[] inverse;
 }
