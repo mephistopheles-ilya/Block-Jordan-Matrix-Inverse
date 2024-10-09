@@ -1,4 +1,4 @@
-#include "functions.h"
+#include "read_print_fill.h"
 #include <stdio.h>
 
 int read_matrix_from_file(double *matrix, int n, int m, char *filename) {
@@ -6,9 +6,6 @@ int read_matrix_from_file(double *matrix, int n, int m, char *filename) {
     if (!file) {
         return 1;
     }
-    /* 
-     * n = m * k + l
-     */
     int counter = 0;
     int num_in_line1; //amount of lines in block
     int num_in_line2; // size of lines in blcok
@@ -41,7 +38,7 @@ int read_matrix_from_file(double *matrix, int n, int m, char *filename) {
     lable:
     fclose(file);
     if (counter != n * n) {
-        return 1;
+        return -1;
     } else {
         return 0;
     }
@@ -154,9 +151,6 @@ void fill_matrix_with_formula(double *matrix, int n, int m, int s) {
 
 
 void print_matrix(double *matrix, int n, int m, int r) {
-    /* 
-     * n = m * k + l
-     */
     if (r > n) r = n;
     int num_in_line1; //amount of lines in block
     int num_in_line2; // size of lines in blcok
@@ -181,7 +175,7 @@ void print_matrix(double *matrix, int n, int m, int r) {
                 cur_element = matrix + line_of_blocks * elements_in_blcok_line + 
                     block_in_line * m * num_in_line1 + line_in_block * num_in_line2;
                 for(i = 0; i < restrict_num_in_line2; ++i) {
-                    printf("%lf ", *(cur_element + i));
+                    printf(" %10.3e", *(cur_element + i));
                 }
             }
             printf("\n");
