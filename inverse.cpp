@@ -26,7 +26,7 @@ int inverse_block(double* block, double* inverse, int* permutations, int m, doub
                 max_elem = fabs(block[j * m + i]);
             }
         }
-        if (max_elem < EPS * norm){
+        if (max_elem <= EPS * norm){
             return -1;
         }
         if(max_col != j) {

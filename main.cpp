@@ -96,6 +96,10 @@ int main(int argc, char* argv[]) {
 
     double r1 = 0, r2 = 0;
     double t2 = 0;
+    if (success1 != 0) {
+        r1 = -1;
+        r2 = -1;
+    }
     if (n <= 11000 && (success1 == 0) && (success2 == 0)) {
         time1 = clock();
         r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_block_m, tmp_line_n);
