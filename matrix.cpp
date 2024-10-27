@@ -1,8 +1,11 @@
 #include <math.h>
 #include <string.h>
 
+
 //#pragma GCC push_options
-//#pragma GCC optimize ("-ffast-math")
+#pragma GCC optimize ("-ffast-math")
+//#pragma GCC target("sse")
+//#pragma GCC target("avx2")
 void block_mult(double* A, int av, int ag, double* B, int bg, double* C) {
     int av_reminder = av % 3;
     int bg_reminder = bg % 3;
@@ -68,78 +71,6 @@ void block_mult(double* A, int av, int ag, double* B, int bg, double* C) {
                 c00 += A[ag * (i) + q] * B[bg * q + (j)];
             }
             C[bg * (i) + (j)] = c00;
-        }
-    }
-}
-
-
-
-
-void block_mult_add(double* A, int av, int ag, double* B, int bg, double* C) {
-    int av_reminder = av % 3;
-    int bg_reminder = bg % 3;
-    int _av = av - av_reminder;
-    int _bg = bg - bg_reminder;
-    int i = 0, j = 0, q = 0;
-    double c00, c01, c02, c10, c11, c12, c20, c21, c22;
-    for(i = 0; i < _av; i += 3) {
-        for(j = 0; j < _bg; j+= 3) {
-            c00 = 0; c01 = 0; c02 = 0;
-            c10 = 0; c11 = 0; c12 = 0;
-            c20 = 0; c21 = 0; c22 = 0;
-            for(q = 0; q < ag; ++q) {
-                c00 += A[ag * (i) + q] * B[bg * q + (j)];
-                c01 += A[ag * (i) + q] * B[bg * q + (j + 1)];
-                c02 += A[ag * (i) + q] * B[bg * q + (j + 2)];
-                c10 += A[ag * (i + 1) + q] * B[bg * q + (j)];
-                c11 += A[ag * (i + 1) + q] * B[bg * q + (j + 1)];
-                c12 += A[ag * (i + 1) + q] * B[bg * q + (j + 2)];
-                c20 += A[ag * (i + 2) + q] * B[bg * q + (j)];
-                c21 += A[ag * (i + 2) + q] * B[bg * q + (j + 1)];
-                c22 += A[ag * (i + 2) + q] * B[bg * q + (j + 2)];
-            }
-            C[bg * (i) + (j)] += c00;
-            C[bg * (i) + (j + 1)] += c01;
-            C[bg * (i) + (j + 2)] +=c02;
-            C[bg * (i + 1) + (j)] += c10;
-            C[bg * (i + 1) + (j + 1)] += c11;
-            C[bg * (i + 1) + (j + 2)] += c12;
-            C[bg * (i + 2) + (j)] += c20;
-            C[bg * (i + 2) + (j + 1)] += c21;
-            C[bg * (i + 2) + (j + 2)] += c22;
-        }
-        for(;j < bg; ++j) {
-            c00 = 0;
-            c10 = 0;
-            c20 = 0;
-            for(q = 0; q < ag; ++q) {
-                c00 += A[ag * (i) + q] * B[bg * q + (j)];
-                c10 += A[ag * (i + 1) + q] * B[bg * q + (j)];
-                c20 += A[ag * (i + 2) + q] * B[bg * q + (j)];
-            }
-            C[bg * (i) + (j)] += c00;
-            C[bg * (i + 1) + (j)] += c10;
-            C[bg * (i + 2) + (j)] += c20;
-        }
-    }
-    for(; i < av; ++i) {
-        for(j = 0; j < _bg; j+= 3) {
-            c00 = 0; c01 = 0; c02 = 0;
-            for(q = 0; q < ag; ++q) {
-                c00 += A[ag * (i) + q] * B[bg * q + (j)];
-                c01 += A[ag * (i) + q] * B[bg * q + (j + 1)];
-                c02 += A[ag * (i) + q] * B[bg * q + (j + 2)];
-            }
-            C[bg * (i) + (j)] += c00;
-            C[bg * (i) + (j + 1)] += c01;
-            C[bg * (i) + (j + 2)] += c02;
-        }
-        for(;j < bg; ++j) {
-            c00 = 0;
-            for(q = 0; q < ag; ++q) {
-                c00 += A[ag * (i) + q] * B[bg * q + (j)];
-            }
-            C[bg * (i) + (j)] += c00;
         }
     }
 }
@@ -212,6 +143,77 @@ void block_mult_sub(double* A, int av, int ag, double* B, int bg, double* C) {
         }
     }
 }
+
+
+void block_mult_add(double* A, int av, int ag, double* B, int bg, double* C) {
+    int av_reminder = av % 3;
+    int bg_reminder = bg % 3;
+    int _av = av - av_reminder;
+    int _bg = bg - bg_reminder;
+    int i = 0, j = 0, q = 0;
+    double c00, c01, c02, c10, c11, c12, c20, c21, c22;
+    for(i = 0; i < _av; i += 3) {
+        for(j = 0; j < _bg; j+= 3) {
+            c00 = 0; c01 = 0; c02 = 0;
+            c10 = 0; c11 = 0; c12 = 0;
+            c20 = 0; c21 = 0; c22 = 0;
+            for(q = 0; q < ag; ++q) {
+                c00 += A[ag * (i) + q] * B[bg * q + (j)];
+                c01 += A[ag * (i) + q] * B[bg * q + (j + 1)];
+                c02 += A[ag * (i) + q] * B[bg * q + (j + 2)];
+                c10 += A[ag * (i + 1) + q] * B[bg * q + (j)];
+                c11 += A[ag * (i + 1) + q] * B[bg * q + (j + 1)];
+                c12 += A[ag * (i + 1) + q] * B[bg * q + (j + 2)];
+                c20 += A[ag * (i + 2) + q] * B[bg * q + (j)];
+                c21 += A[ag * (i + 2) + q] * B[bg * q + (j + 1)];
+                c22 += A[ag * (i + 2) + q] * B[bg * q + (j + 2)];
+            }
+            C[bg * (i) + (j)] += c00;
+            C[bg * (i) + (j + 1)] += c01;
+            C[bg * (i) + (j + 2)] +=c02;
+            C[bg * (i + 1) + (j)] += c10;
+            C[bg * (i + 1) + (j + 1)] += c11;
+            C[bg * (i + 1) + (j + 2)] += c12;
+            C[bg * (i + 2) + (j)] += c20;
+            C[bg * (i + 2) + (j + 1)] += c21;
+            C[bg * (i + 2) + (j + 2)] += c22;
+        }
+        for(;j < bg; ++j) {
+            c00 = 0;
+            c10 = 0;
+            c20 = 0;
+            for(q = 0; q < ag; ++q) {
+                c00 += A[ag * (i) + q] * B[bg * q + (j)];
+                c10 += A[ag * (i + 1) + q] * B[bg * q + (j)];
+                c20 += A[ag * (i + 2) + q] * B[bg * q + (j)];
+            }
+            C[bg * (i) + (j)] += c00;
+            C[bg * (i + 1) + (j)] += c10;
+            C[bg * (i + 2) + (j)] += c20;
+        }
+    }
+    for(; i < av; ++i) {
+        for(j = 0; j < _bg; j+= 3) {
+            c00 = 0; c01 = 0; c02 = 0;
+            for(q = 0; q < ag; ++q) {
+                c00 += A[ag * (i) + q] * B[bg * q + (j)];
+                c01 += A[ag * (i) + q] * B[bg * q + (j + 1)];
+                c02 += A[ag * (i) + q] * B[bg * q + (j + 2)];
+            }
+            C[bg * (i) + (j)] += c00;
+            C[bg * (i) + (j + 1)] += c01;
+            C[bg * (i) + (j + 2)] += c02;
+        }
+        for(;j < bg; ++j) {
+            c00 = 0;
+            for(q = 0; q < ag; ++q) {
+                c00 += A[ag * (i) + q] * B[bg * q + (j)];
+            }
+            C[bg * (i) + (j)] += c00;
+        }
+    }
+}
+
 //#pragma GCC pop_options
 
 double norm_block(double* block, int m) {
