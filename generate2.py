@@ -4,12 +4,13 @@ def f(i, j):
     return (j - i) if (i - j) < 0 else (i - j)
 
 def generate_matrix(size, a, b):
-    # Generate a random matrix
-    #matrix = np.random.randint(a, b, (size, size))
+    matrix = np.random.uniform(a, b, (size, size))
+    '''
     matrix = np.zeros((size, size))
     for i in range(size):
         for j in range(size):
             matrix[i, j] = f(i, j)
+    '''
     return matrix
 
 def generate_matrix_non_zero_determinant(size, a, b):

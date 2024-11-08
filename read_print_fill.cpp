@@ -1,5 +1,6 @@
 #include "read_print_fill.h"
 #include <stdio.h>
+#include <cmath>
 
 int read_matrix_from_file(double *matrix, int n, int m, char *filename) {
     FILE* file = fopen(filename, "r");
@@ -176,10 +177,16 @@ void print_matrix(double *matrix, int n, int m, int r) {
                 cur_element = matrix + line_of_blocks * elements_in_blcok_line + 
                     block_in_line * m * num_in_line1 + line_in_block * num_in_line2;
                 for(i = 0; i < restrict_num_in_line2; ++i) {
-                    printf(" %10.3e", *(cur_element + i));
+                    //printf(" %10.3e", *(cur_element + i));
+                    if(std::abs(*(cur_element + i)) < 1e-5) {
+                        printf("%lf\n", 0.);
+                    } else {
+                        printf("%lf\n", *(cur_element + i));
+                    }
+
                 }
             }
-            printf("\n");
+            //printf("\n");
         }
     }
 }
