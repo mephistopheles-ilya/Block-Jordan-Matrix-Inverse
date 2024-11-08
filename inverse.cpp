@@ -113,15 +113,14 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
             memcpy(block_m, matrix + j * el_in_block_line + i * m * m, m * m * sizeof(double));
             fill_id_block(inv_block_m, m);
             if (inverse_block(block_m, inv_block_m, permutations_m, m, matrix_norm)
-                    != 0) {
-                continue;
+                    == 0) {
+                current_block_norm = norm_block(inv_block_m, m);
+                if (current_block_norm < block_min_norm) {
+                    block_min_norm = current_block_norm;
+                    min_col = i;
+                }
+                inv_exist = true;
             }
-            current_block_norm = norm_block(inv_block_m, m);
-            if (current_block_norm < block_min_norm) {
-                block_min_norm = current_block_norm;
-                min_col = i;
-            }
-            inv_exist = true;
         }
         if (!inv_exist) {
             return -1;

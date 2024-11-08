@@ -44,6 +44,7 @@ int read_matrix_from_file(double *matrix, int n, int m, char *filename) {
     }
 }
 
+
 void create_id_matrix(double *matrix, int n, int m) {
     int num_in_line1; //amount of lines in block
     int num_in_line2; // size of lines in blcok

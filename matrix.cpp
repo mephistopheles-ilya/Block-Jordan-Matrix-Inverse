@@ -3,7 +3,7 @@
 
 
 //#pragma GCC push_options
-#pragma GCC optimize ("-ffast-math")
+//#pragma GCC optimize ("-ffast-math")
 //#pragma GCC target("sse")
 //#pragma GCC target("avx2")
 void block_mult(double* A, int av, int ag, double* B, int bg, double* C) {
