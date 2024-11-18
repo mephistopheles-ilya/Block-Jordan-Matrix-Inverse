@@ -159,9 +159,12 @@ void* thread_func(void* arg) {
     all_time = get_full_time() - all_time;
     a->time = time_for_thread;
 
+    {
+        std::lock_guard<std::mutex> lk(mut);
     //if (a -> k == 0) {
-        std::cout << "Full time = " << all_time << std::endl;
+        std::cout << "Full time thread " << a->k << " = " << all_time << std::endl;
     //}
+    }
     delete[] block1;
     delete[] block2;
 
@@ -219,11 +222,14 @@ int main(int argc, char* argv[]) {
     args[0].n = n;
     args[0].m = m;
     args[0].barier = &barrier;
+    double time = get_full_time();
     for(int i = 1; i < p; ++i) {
         pthread_create(&(args[i].tid), nullptr, thread_func, args + i);
     }
     args[0].tid = pthread_self();
     thread_func(args);
+    time = get_full_time() - time;
+    std::cout << "FULL time " << time << std::endl;
 
     for(int i = 1; i < p; ++i) {
         pthread_join(args[i].tid, nullptr);

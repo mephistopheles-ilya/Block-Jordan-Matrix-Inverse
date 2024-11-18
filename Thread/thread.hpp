@@ -23,6 +23,12 @@ struct Arg {
     double* inverse = nullptr;
 
     int error = 0;
+    double global_time_inv = 0;
+    double local_time_inv = 0;
+    double global_time_dis = 0;
+    double local_time_dis = 0;
+    double r1 = 0;
+    double r2 = 0;
 
     pthread_t tid = 0;
     pthread_barrier_t* barrier = nullptr;

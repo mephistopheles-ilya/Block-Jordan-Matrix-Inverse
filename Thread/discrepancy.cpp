@@ -1,8 +1,9 @@
-#include "matrix.h"
+#include "matrix.hpp"
+#include "thread.hpp"
 #include <string.h>
 #include <math.h>
 
-double calculate_discrepancy(double* matrix, double* inverse, int n, int m, double* tmp_block_m
+double calculate_discrepancy(Arg* a, double* matrix, double* inverse, int n, int m, double* tmp_block_m
         , double* tmp_line_n) {
     int k = n / m;
     int l = n - m * k;

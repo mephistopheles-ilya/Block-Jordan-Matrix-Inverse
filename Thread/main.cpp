@@ -76,7 +76,23 @@ int main(int argc, char* argv[]) {
     for(int thread_number = 1; thread_number < p; ++thread_number) {
         pthread_join(args[thread_number].tid, nullptr);
     }
+    int task = 19;
+    double r1 = args[0].r1;
+    double r2 = args[0].r2;
+    double t1 = args[0].global_time_inv;
+    double t2 = args[0].global_time_dis;
+    printf ("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",
+            argv[0], task, r1, r2, t1, t2, s, n, m, p);
+
+    for(int i = 0; i < p; ++i) {
+        printf("Time for inv thread %2d : %lf\n", i, args[i].local_time_inv);
+        printf("Time for dis thread %2d : %lf\n", i, args[i].local_time_dis);
+    }
+
+    pthread_barrier_destroy(&barrier);
+    delete[] matrix;
+    delete[] inverse;
+    delete[] args;
 
     return 0;
-
 }

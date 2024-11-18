@@ -2,11 +2,27 @@
 #include "reduce_sum.hpp"
 #include "read_print_fill.hpp"
 #include "matrix.hpp"
+#include "inverse.hpp"
+#include "discrepancy.hpp"
 
 #include <sys/sysinfo.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <new>
+
+double get_cpu_time() {
+    struct rusage buf;
+    getrusage(RUSAGE_THREAD, &buf);
+    return (double)(buf.ru_utime.tv_sec) + (double)(buf.ru_utime.tv_usec)/1000000.;
+}
+double get_full_time() {
+    struct timeval buf;
+    gettimeofday(&buf, 0);
+    return (double)(buf.tv_sec) + (double)(buf.tv_usec)/1000000.;
+}
 
 
 void stick_matrices_to_core(Arg* a) {
@@ -69,6 +85,7 @@ void* thread_func(void* arg) {
     double norm = 0;
     double local_time = 0;
     double global_time = 0;
+    double r1 = 0, r2 = 0;
 
     int nproc = get_nprocs();
     cpu_set_t cpu;
@@ -76,22 +93,92 @@ void* thread_func(void* arg) {
     CPU_SET(nproc - 1 - (thread_number % (nproc)), &cpu);
     pthread_setaffinity_np(pthread_self(), sizeof(cpu), &cpu);
 
+    int* permutations = new(std::nothrow) int[n / m];
+    int* permutations_m = new(std::nothrow) int[m];  
+    double* block_m = new(std::nothrow) double[m * m];
+    double* inv_block_m = new(std::nothrow) double[m * m];
+    double* line_n = new(std::nothrow) double[n];
+
+    if (permutations == nullptr || permutations_m == nullptr 
+        || block_m == nullptr || inv_block_m == nullptr) {
+        delete[] permutations;
+        delete[] permutations_m;
+        delete[] block_m;
+        delete[] inv_block_m;
+        delete[] line_n;
+        if (thread_number == 0) {
+            printf("Not enough memmory in thread number %d\n", thread_number);
+        }
+        return nullptr;
+    }
+
     stick_matrices_to_core(a);
     fill_matrices(a);
     if (a->error > 0) {
         if (thread_number == 0) {
             printf("Bad file\n");
-            //TODO free extra arrays
         }
+        delete[] permutations;
+        delete[] permutations_m;
+        delete[] block_m;
+        delete[] inv_block_m;
+        delete[] line_n;
         return nullptr;
     }
 
     if (thread_number == 0) {
+        printf("Initial matrix :\n");
+        print_matrix(matrix, n, m, r);
         norm = norm_matrix(matrix, n, m);
     }
     pthread_barrier_wait(a->barrier);
+    global_time = get_full_time();
+    local_time = get_cpu_time();
+    inverse_matrix(a, matrix, inverse, n, m, permutations, block_m, inv_block_m, permutations_m);
+    local_time = get_cpu_time() - local_time;
+    reduce_sum(p, &(a->error), 1);
+    global_time = get_full_time() - global_time;
+    a -> local_time_inv = local_time;
+    a -> global_time_inv = global_time;
+    if (a-> error > 0) {
+        if (thread_number == 0) {
+            printf("This algorithm can't be applied\n");
+        }
+        a -> r1 = -1;
+        a -> r2 = -1;
+        delete[] permutations;
+        delete[] permutations_m;
+        delete[] block_m;
+        delete[] inv_block_m;
+        delete[] line_n;
+        return nullptr;
+    }
+    pthread_barrier_wait(a->barrier);
+    if (n < 11000) {
+        global_time = get_full_time();
+        local_time = get_cpu_time();
+        r1 = calculate_discrepancy(a, matrix, inverse, n, m, block_m, line_n);  
+        a -> local_time_dis = get_cpu_time() - local_time;
+        local_time = get_cpu_time();
+        pthread_barrier_wait(a->barrier);
+        r2 = calculate_discrepancy(a, matrix, inverse, n, m, block_m, line_n);
+        a -> local_time_dis += get_cpu_time() - local_time;
+        pthread_barrier_wait(a->barrier);
+        global_time = get_full_time() - global_time;
+        a -> global_time_dis = global_time;
+        a -> r1 = r1;
+        a -> r2 = r2;
+    }
+    if (thread_number == 0) {
+        printf("Inverse matrix :\n");
+        print_matrix(inverse, n, m, r);
+    }
 
-
+    delete[] permutations;
+    delete[] permutations_m;
+    delete[] block_m;
+    delete[] inv_block_m;
+    delete[] line_n;
     return nullptr;
 }
 

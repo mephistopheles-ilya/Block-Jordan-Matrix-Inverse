@@ -3,7 +3,8 @@
 #include <limits>
 #include <string.h>
 
-#include "matrix.h"
+#include "matrix.hpp"
+#include "thread.hpp"
 
 #define EPS 1e-16
 
@@ -91,7 +92,7 @@ int inverse_block(double* block, double* inverse, int* permutations, int m, doub
 
 
 
-int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutations
+int inverse_matrix(Arg* a, double* matrix, double* inverse, int n, int m, int* permutations
         , double* block_m, double* inv_block_m, int* permutations_m) {
     double matrix_norm = norm_matrix(matrix, n, m);
     int k = n / m;
