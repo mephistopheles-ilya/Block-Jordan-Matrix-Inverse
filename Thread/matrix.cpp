@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include "thread.hpp"
 
 
 //#pragma GCC push_options
@@ -260,22 +261,27 @@ double norm_matrix(double* matrix, int n, int m) {
 }
 
 
-void swap_block_col(double* matrix, int n, int m, int i, int j, double* tmp_block_m) {
+void swap_block_col_th(Arg* a, int i, int j, double* tmp_block_m) {
+    int n = a->n;
+    int m = a->m;
+    double* matrix = a->matrix;
+    int p = a->p;
+    int thread_number = a->thread_number;
     int k = n / m;
     int l = n - k * m;
     int u;
     int el_in_block_line = k * m * m + m * l, imm = i * m * m, jmm = j * m * m;
-    for(u = 0; u < k; ++u) {
+    for(u = thread_number; u < k; u += p) {
         memcpy(tmp_block_m, matrix + u * el_in_block_line + imm, m * m * sizeof(double));
         memcpy(matrix + u * el_in_block_line + imm
                 , matrix + u * el_in_block_line + jmm, m * m * sizeof(double));
         memcpy(matrix + u * el_in_block_line + jmm, tmp_block_m, m * m * sizeof(double));
     }
-    if(l != 0) {
-        memcpy(tmp_block_m, matrix + u * el_in_block_line + i * m * l, l * m * sizeof(double));
-        memcpy(matrix + u * el_in_block_line + i * m * l
-                , matrix + u * el_in_block_line + j * m * l, l * m * sizeof(double));
-        memcpy(matrix + u * el_in_block_line + j * l * m, tmp_block_m, l * m * sizeof(double));
+    if(l != 0 && (k % p == thread_number)) {
+        memcpy(tmp_block_m, matrix + k * el_in_block_line + i * m * l, l * m * sizeof(double));
+        memcpy(matrix + k * el_in_block_line + i * m * l
+                , matrix + k * el_in_block_line + j * m * l, l * m * sizeof(double));
+        memcpy(matrix + k * el_in_block_line + j * l * m, tmp_block_m, l * m * sizeof(double));
     }
 } 
 

@@ -2,6 +2,7 @@
 #include <math.h>
 #include <limits>
 #include <string.h>
+#include <stdio.h>
 
 #include "matrix.h"
 
@@ -223,6 +224,7 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
 
     for(i = 0; i < k;) {
         if(permutations[i] != i) {
+            printf("Swap %d and  %d\n", permutations[i], i);
             swap_block_lin(inverse, n, m, i, permutations[i], block_m);
             tmp_i = permutations[i];
             permutations[i] = permutations[tmp_i];

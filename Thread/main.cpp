@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
         args[thread_number].m = m;
         args[thread_number].p = p;
         args[thread_number].r = r;
+        args[thread_number].s = s;
         args[thread_number].filename = argv[6];
         args[thread_number].thread_number = thread_number; 
         args[thread_number].matrix = matrix;
@@ -83,12 +84,12 @@ int main(int argc, char* argv[]) {
     double t2 = args[0].global_time_dis;
     printf ("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",
             argv[0], task, r1, r2, t1, t2, s, n, m, p);
-
+#if 0
     for(int i = 0; i < p; ++i) {
         printf("Time for inv thread %2d : %lf\n", i, args[i].local_time_inv);
         printf("Time for dis thread %2d : %lf\n", i, args[i].local_time_dis);
     }
-
+#endif
     pthread_barrier_destroy(&barrier);
     delete[] matrix;
     delete[] inverse;

@@ -1,0 +1,14 @@
+#!/bin/bash
+for (( s=4; s <= 4; s++ ))
+do
+    for (( n = 1; n <= 20; n++ ))
+    do 
+        for (( m = 1; m <= $n; m++ ))
+        do
+            for (( p = 1; p <= 20; p++ ))
+            do
+                ./a.out $n $m $p 0 $s
+            done
+        done
+    done
+done
