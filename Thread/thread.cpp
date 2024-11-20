@@ -78,9 +78,7 @@ void* thread_func(void* arg) {
     int m = a->m;
     int p = a->p;
     int r = a->r;
-    int s = a->s;
     int thread_number = a->thread_number;
-    char* filename = a->filename;
     double* matrix = a->matrix;
     double* inverse = a->inverse;
 
@@ -183,15 +181,15 @@ void* thread_func(void* arg) {
     if (n < 11000) {
         global_time = get_full_time();
         local_time = get_cpu_time();
-        if (thread_number == 0) {
-            r1 = calculate_discrepancy(a, matrix, inverse, n, m, block_m, line_n);  
-        }
+        //if (thread_number == 0) {
+        r1 = calculate_discrepancy(a, matrix, inverse, block_m, line_n);  
+        //}
         a -> local_time_dis = get_cpu_time() - local_time;
         pthread_barrier_wait(a->barrier);
         local_time = get_cpu_time();
-        if (thread_number == 0) {
-            r2 = calculate_discrepancy(a, inverse, matrix, n, m, block_m, line_n);
-        }
+        //if (thread_number == 0) {
+        r2 = calculate_discrepancy(a, inverse, matrix, block_m, line_n);
+        //}
         a -> local_time_dis += get_cpu_time() - local_time;
         pthread_barrier_wait(a->barrier);
         global_time = get_full_time() - global_time;
