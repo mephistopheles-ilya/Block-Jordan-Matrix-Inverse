@@ -84,12 +84,31 @@ int main(int argc, char* argv[]) {
     double t2 = args[0].global_time_dis;
     printf ("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",
             argv[0], task, r1, r2, t1, t2, s, n, m, p);
+
 #if 0
     for(int i = 0; i < p; ++i) {
         printf("Time for inv thread %2d : %lf\n", i, args[i].local_time_inv);
+    }
+    for(int i = 0; i < p; ++i) {
         printf("Time for dis thread %2d : %lf\n", i, args[i].local_time_dis);
     }
+
 #endif
+
+#if 0
+    double sum1 = 0;
+    for(int i = 0; i < p; ++i) {
+        sum1 += args[i].local_time_inv * args[i].local_time_inv;
+    }
+    sum1 /= p;
+    double sum2 = 0;
+    for(int i = 0; i < p; ++i) {
+        sum2 += args[i].local_time_inv;
+    }
+    sum2 /= p;
+    printf("D : %.20lf\n", sum1 - sum2 * sum2);
+#endif
+
     pthread_barrier_destroy(&barrier);
     delete[] matrix;
     delete[] inverse;

@@ -5,7 +5,7 @@
 
 #include "reduce_sum.hpp"
 
-
+#if 1
 double calculate_discrepancy(Arg* a, double* matrix, double* inverse, double* tmp_block_m, double* tmp_line_n) {
     int n = a->n;
     int m = a->m;
@@ -116,7 +116,7 @@ double calculate_discrepancy(Arg* a, double* matrix, double* inverse, double* tm
     }
     return max;
 }
-
+#endif
 
 #if 0
 double calculate_discrepancy(Arg* a, double* matrix, double* inverse, double* tmp_block_m, double* tmp_line_n) {

@@ -178,7 +178,7 @@ void* thread_func(void* arg) {
         return nullptr;
     }
 
-    if (n < 11000) {
+    if (n < -1) {
         global_time = get_full_time();
         local_time = get_cpu_time();
         //if (thread_number == 0) {
