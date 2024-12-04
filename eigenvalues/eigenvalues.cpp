@@ -18,7 +18,7 @@ int matrix_to_almost_triangle(double *matrix, double *x, int n, double eps, doub
         for(int lin = col + 2; lin < n; ++lin) {
             s_k += matrix[n * lin + col] * matrix[n * lin + col];
         }
-        if (s_k <= eps * norm) {
+        if (std::sqrt(s_k) <= eps * norm) {
             continue;
         }
         a_norm = std::sqrt(s_k + matrix[n * (col + 1) + col] * matrix[n * (col + 1) + col]);
@@ -143,8 +143,8 @@ int find_eigenvalues(double *matrix, double *x1, double *x2, double* eigenvalues
             val1 = (-b + discr) * 0.5;
             val2 = c / val1;
         }
-        eigenvalues[1] = std::min(val1, val2);
-        eigenvalues[0] = std::max(val1, val2);
+        eigenvalues[1] = std::max(val1, val2);
+        eigenvalues[0] = std::min(val1, val2);
     } 
     if (n == 1) {
         eigenvalues[0] = matrix[0];
