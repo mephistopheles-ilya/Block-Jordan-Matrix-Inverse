@@ -9,8 +9,8 @@ endif
 			#-ffast-math #-march=native
 			#-ffast-math #-march=native
 
-#CXXFLAGS ?= -g -O0 -fsanitize=leak,undefined,address
-#LDFLAGS ?=  -fsanitize=leak,undefined,address
+#CXXFLAGS ?= -g -O0 -fsanitize=leak,undefined,address,null
+#LDFLAGS ?=  -fsanitize=leak,undefined,address,null
 CXXFLAGS ?= -O3
 
 CSRC = main.cpp func.cpp eigenvalues.cpp

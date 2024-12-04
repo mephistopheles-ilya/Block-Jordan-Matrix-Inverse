@@ -14,5 +14,5 @@ double f(int k, int n, int i, int j);
 double matrix_norm(double* matrix, int n);
 double matrix_trace(double* matrix, int n);
 double matrix_length(double* matrix, int n);
-void print_matrix(double* matrix, int a, int b, int m);
+void print_matrix(double* matrix, int a, int b, int m, int n);
 

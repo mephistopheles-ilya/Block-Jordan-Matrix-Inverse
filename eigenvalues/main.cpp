@@ -28,11 +28,15 @@ int main(int argc, char* argv[]) {
     }
 
     double* matrix = new (std::nothrow) double[n * n];
-    double* x = new (std::nothrow) double[n];
-    if (matrix == nullptr || x == nullptr) {
+    double* x1 = new (std::nothrow) double[n];
+    double* x2 = new (std::nothrow) double[n];
+    double* eigenvalues = new (std::nothrow) double[n];
+    if (matrix == nullptr || x1 == nullptr || x2 == nullptr) {
         printf("Not enough memmory\n");
         delete[] matrix;
-        delete[] x;
+        delete[] x1;
+        delete[] x2;
+        delete[] eigenvalues;
         return 2;
     }
     io_status status = io_status::undef;
@@ -45,19 +49,25 @@ int main(int argc, char* argv[]) {
     if (status == io_status::cannot_open_file) {
         printf("Cannot open file\n");
         delete[] matrix;
-        delete[] x;
+        delete[] x1;
+        delete[] x2;
+        delete[] eigenvalues;
         return 3;
     }
     if (status == io_status::error_read) {
         printf("Cannot read elements from file\n");
         delete[] matrix;
-        delete[] x;
+        delete[] x1;
+        delete[] x2;
+        delete[] eigenvalues;
         return 4;
     }
     if (status == io_status::not_enough_elements) {
         printf("Not enough elements in file\n");
         delete[] matrix;
-        delete[] x;
+        delete[] x1;
+        delete[] x2;
+        delete[] eigenvalues;
         return 5;
     }
     norm = matrix_norm(matrix, n);
@@ -65,22 +75,44 @@ int main(int argc, char* argv[]) {
     length1 = matrix_length(matrix, n);
 
     printf("Initial Matrix:\n");
-    print_matrix(matrix, n, n, m);
+    print_matrix(matrix, n, n, m, n);
 
     t1 = clock();
-    matrix_to_almost_triangle(matrix, x, n, eps, norm);
+    matrix_to_almost_triangle(matrix, x1, n, eps, norm);
     t1 = (clock() - t1)/CLOCKS_PER_SEC;
 
-    double trace2 = matrix_trace(matrix, n);
-    printf("DEBUG TRACE_DIFF: %e %e \n", std::fabs(trace1 - trace2), std::fabs(trace1 - trace2)/norm);
+    t2 = clock();
+    find_eigenvalues(matrix, x1, x2, eigenvalues, n, eps, norm, its);
+    t2 = (clock() - t2)/CLOCKS_PER_SEC; 
+
+    //double trace2 = matrix_trace(matrix, n);
+    //printf("DEBUG TRACE_DIFF: %e %e \n", std::fabs(trace1 - trace2), std::fabs(trace1 - trace2)/norm);
+
+    double trace2 = 0;
+    for(int i = 0; i < n; ++i) {
+        trace2 += eigenvalues[i];
+    }
+    double length2 = 0;
+    for(int i = 0; i < n; ++i) {
+        length2 += eigenvalues[i] * eigenvalues[i];
+    }
+    length2 = std::sqrt(length2);
+
+    res1 = std::fabs(trace1 - trace2) / norm;
+    res2 = std::fabs(length1 - length2) / norm;
 
     printf ("%s : Residual1 = %e Residual2 = %e Iterations = %d Iterations1 = %d Elapsed1 = %.2f Elapsed2 = %.2f\n",
             argv[0], res1, res2, its, its / n, t1, t2);
-    print_matrix(matrix, n, n, m);
+    print_matrix(matrix, n, n, m, n);
+
+    printf("Eigenvalues :\n");
+    print_matrix(eigenvalues, 1, n, m, n);
 
 
     delete[] matrix;
-    delete[] x;
+    delete[] x1;
+    delete[] x2;
+    delete[] eigenvalues;
     return 0;
 }
 

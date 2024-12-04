@@ -81,7 +81,7 @@ double matrix_norm(double* matrix, int n) {
     for(int i = 0; i < n; ++i) {
         sum = 0;
         for(int j = 0; j < n; ++j) {
-            sum += std::fabs(matrix[i * n + j]);
+            sum += std::fabs(matrix[j * n + i]);
         }
         if (sum > norm) {
             norm = sum;
@@ -109,12 +109,12 @@ double matrix_length(double* matrix, int n) {
     return std::sqrt(length);
 }
 
-void print_matrix(double* matrix, int a, int b, int m) {
+void print_matrix(double* matrix, int a, int b, int m, int n) {
     a = (a > m) ? m : a;
     b = (b > m) ? m : b;
     for(int i = 0; i < a; ++i) {
         for(int j = 0; j < b; ++j) {
-            printf(" %10.3e", matrix[i * a + j]);
+            printf(" %10.3e", matrix[i * n + j]);
         }
         printf("\n");
     }
