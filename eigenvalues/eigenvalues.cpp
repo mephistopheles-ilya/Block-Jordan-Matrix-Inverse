@@ -4,6 +4,8 @@
 
 #include "eigenvalues.hpp"
 
+inline int LIMIT_OF_ITERATIONS = 50000;
+
 int matrix_to_almost_triangle(double *matrix, double *x, int n, double eps, double norm) {
     double s_k = 0;
     double a_norm = 0;
@@ -65,42 +67,27 @@ int find_eigenvalues(double *matrix, double *x1, double *x2, double* eigenvalues
     double s_k = 0;
     double a_norm = 0;
     double x_norm = 0;
-    double x_inv = 0;
     double dot_product = 0;
     for(int i = (n - 1); i >= 2; --i) {
-        while(std::fabs(matrix[i * n + (i - 1)]) > eps * norm) {
+        while(std::fabs(matrix[i * n + (i - 1)]) > eps * norm && (its < LIMIT_OF_ITERATIONS)) {
             ++its;
-            if (its%1000 == 0) {
-                printf("its = %d i = %d\n", its, i);
+            if (its % 1000 == 0) {
+                printf("Iterations = %d on step = %d\n", its, i);
             }
             shift = matrix[i * n + i] - 0.5 * matrix[i * n + (i - 1)];
             for(int j = 0; j <= i; ++j) {
                 matrix[j * n + j] -= shift;
             }
-            //if (std::fabs(matrix[i * n + i]) < eps * norm) {
-            //    for(int j = 0; j <= i; ++j) {
-            //        matrix[j * n + j] += shift;
-            //    }
-            //    matrix[i * n + (i - 1)] = 0;
-            //    printf("HERE i = %d\n", i);
-            //    break;
-            //}
             for(int k = 0; k < i; ++k) {
                 if (std::fabs(matrix[n * (k + 1) + k]) <= eps * norm) {
                     x1[k] = 0;
                     x2[k] = 0;
                 } else {
                     s_k = matrix[n * (k + 1) + k] * matrix[n * (k + 1) + k];
-                    //if (s_k < eps * norm) {
-                    //    printf("ERROR i = %d, k = %d\n",i, k);
-                    //}
                     a_norm = std::sqrt(matrix[n * k + k] * matrix[n * k + k] + s_k);
                     x1[k] = matrix[k * n + k] - a_norm;
                     x2[k] = matrix[(k + 1) * n + k];
                     x_norm = std::sqrt(x1[k] * x1[k] + s_k);
-                //if (x_norm < eps * norm) {
-                //    printf("ERROR i = %d, k = %d\n",i, k);
-                //}
                     x1[k] /= x_norm;
                     x2[k] /= x_norm;
                     matrix[k * n + k] = a_norm;
@@ -131,12 +118,26 @@ int find_eigenvalues(double *matrix, double *x1, double *x2, double* eigenvalues
         }
         eigenvalues[i] = matrix[i * n + i];
     }
+    if (its >= LIMIT_OF_ITERATIONS) {
+        printf("The limit of iterations has been reached\n");
+        return 1;
+    }
     if (n > 1) {
         double b = -(matrix[0] + matrix[n + 1]);
         double c = (matrix[0] * matrix[n + 1] - matrix[n] * matrix[1]);
-        double discr = std::sqrt(b * b - 4 *  c);
+        double discr = b * b - 4 * c;
         double val1 = 0, val2 = 0;
-        if (b > 0) {
+
+        if (discr < 0) {
+            printf("No real solutions\n");
+            return 1;
+        } else {
+            discr = std::sqrt(discr);
+        }
+        if (std::fabs(b) <= eps * norm && std::fabs(c) < eps * norm) {
+            val1 = 0;
+            val2 = 0;
+        } else if (b > 0) {
             val1 = (-b - discr) * 0.5;
             val2 = c / val1;
         } else {

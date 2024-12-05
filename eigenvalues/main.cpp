@@ -3,6 +3,7 @@
 #include <new>
 #include <ctime>
 #include <cmath>
+#include <string.h>
 
 #include "func.hpp"
 #include "eigenvalues.hpp"
@@ -31,7 +32,7 @@ int main(int argc, char* argv[]) {
     double* x1 = new (std::nothrow) double[n];
     double* x2 = new (std::nothrow) double[n];
     double* eigenvalues = new (std::nothrow) double[n];
-    if (matrix == nullptr || x1 == nullptr || x2 == nullptr) {
+    if (matrix == nullptr || x1 == nullptr || x2 == nullptr || eigenvalues == nullptr) {
         printf("Not enough memmory\n");
         delete[] matrix;
         delete[] x1;
@@ -39,6 +40,12 @@ int main(int argc, char* argv[]) {
         delete[] eigenvalues;
         return 2;
     }
+
+    memset(matrix, 0, n * n * sizeof(double));
+    memset(x1, 0, n * sizeof(double));
+    memset(x2, 0, n * sizeof(double));
+    memset(eigenvalues, 0, n * sizeof(double));
+
     io_status status = io_status::undef;
     if (k == 0) {
         status = read_matrix_from_file(matrix, n, argv[5]);
@@ -81,33 +88,39 @@ int main(int argc, char* argv[]) {
     matrix_to_almost_triangle(matrix, x1, n, eps, norm);
     t1 = (clock() - t1)/CLOCKS_PER_SEC;
 
+    int error_code = 0;
     t2 = clock();
-    find_eigenvalues(matrix, x1, x2, eigenvalues, n, eps, norm, its);
+    error_code = find_eigenvalues(matrix, x1, x2, eigenvalues, n, eps, norm, its);
     t2 = (clock() - t2)/CLOCKS_PER_SEC; 
 
-    //double trace2 = matrix_trace(matrix, n);
-    //printf("DEBUG TRACE_DIFF: %e %e \n", std::fabs(trace1 - trace2), std::fabs(trace1 - trace2)/norm);
+    if (error_code == 0) {
+        double trace2 = 0;
+        for(int i = 0; i < n; ++i) {
+            trace2 += eigenvalues[i];
+        }
+        double length2 = 0;
+        for(int i = 0; i < n; ++i) {
+            length2 += eigenvalues[i] * eigenvalues[i];
+        }
+        length2 = std::sqrt(length2);
 
-    double trace2 = 0;
-    for(int i = 0; i < n; ++i) {
-        trace2 += eigenvalues[i];
-    }
-    double length2 = 0;
-    for(int i = 0; i < n; ++i) {
-        length2 += eigenvalues[i] * eigenvalues[i];
-    }
-    length2 = std::sqrt(length2);
+        if (norm > 0) {
+            res1 = std::fabs(trace1 - trace2) / norm;
+            res2 = std::fabs(length1 - length2) / norm;
+        } else {
+            res1 = 0;
+            res2 = 0;
+        }
 
-    res1 = std::fabs(trace1 - trace2) / norm;
-    res2 = std::fabs(length1 - length2) / norm;
+        printf("Eigenvalues :\n");
+        print_matrix(eigenvalues, 1, n, m, n);
+    } else {
+        res1 = -1;
+        res2 = -1;
+    }
 
     printf ("%s : Residual1 = %e Residual2 = %e Iterations = %d Iterations1 = %d Elapsed1 = %.2f Elapsed2 = %.2f\n",
             argv[0], res1, res2, its, its / n, t1, t2);
-    print_matrix(matrix, n, n, m, n);
-
-    printf("Eigenvalues :\n");
-    print_matrix(eigenvalues, 1, n, m, n);
-
 
     delete[] matrix;
     delete[] x1;

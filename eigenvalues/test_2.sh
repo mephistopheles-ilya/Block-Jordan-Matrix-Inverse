@@ -1,5 +1,5 @@
 #! /bin/bash
-for ((n=1; n<=12;n++))
+for ((n=1; n<=13;n++))
 do 
     for ((k=1;k<=4;k+=1))
     do 

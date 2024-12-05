@@ -16,7 +16,7 @@ double f(int k, int n, int i, int j) {
         if (i == j) {
             return 2;
         }
-        if (std::fabs(i - j) == 1) {
+        if (std::abs(i - j) == 1) {
             return -1;
         }
         return 0;
