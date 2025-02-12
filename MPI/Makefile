@@ -19,8 +19,8 @@ CXXFLAGS ?=  -O0 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wunused
 LDFLAGS ?=  -fsanitize=undefined,address
 #CXXFLAGS ?= -O3 -mfpmath=sse
 
-CSRC = main.cpp
-COBJ = main.o
+CSRC = main.cpp read_print_fill.cpp
+COBJ = main.o read_print_fill.o
 
 %.o : %.cpp
 	mpicxx $(CXXFLAGS) -c $^ -o $@
