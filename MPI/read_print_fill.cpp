@@ -55,7 +55,7 @@ int fill_matrix(double* matrix, int n, int m, int s, char* file_name, int proc_n
             for(line_in_block = 0; line_in_block < num_line_in_block; ++line_in_block) {
                 for(block_in_line = 0; block_in_line <= k; ++block_in_line) {
                     num_elem_in_line = (block_in_line < k) ? m : l;
-                    int shift = line_in_block * num_line_in_block + block_in_line * m * m;
+                    int shift = line_in_block * num_line_in_block + block_in_line * num_line_in_block * m;
                     if (proc_num == 0) {
                         for(int q = 0; q < num_elem_in_line; ++q) {
                             if (fscanf(file, "%lf", buf + shift + q) == 1) {
@@ -81,7 +81,7 @@ lable:
             int line_of_blocks_loc = line_of_blocks / p;
             if (proc_num == 0) {
                 if (owner == 0) {
-                    memcpy(matrix + line_of_blocks_loc * (m * n * k + l * m), buf, k * num_line_in_block * m + l * 
+                    memcpy(matrix + line_of_blocks_loc * (m * m * k + l * m), buf, k * num_line_in_block * m + l * 
                             num_line_in_block);
                 } else {
                     MPI_Send(buf, k * num_line_in_block * m + l * num_line_in_block, MPI_DOUBLE, owner, 0, comm);
@@ -89,7 +89,7 @@ lable:
             } else {
                 if (proc_num == owner) {
                     MPI_Status st;
-                    MPI_Recv(matrix + line_of_blocks_loc * (m * n * k + l * m), k * num_line_in_block * m + 
+                    MPI_Recv(matrix + line_of_blocks_loc * (m * m * k + l * m), k * num_line_in_block * m + 
                             l * num_line_in_block, MPI_DOUBLE, 0, 0, comm, &st);
                 }
             }        
@@ -118,9 +118,9 @@ lable:
                 i_loc = line_of_blocks * m + line_in_block;
                 for(block_in_line = 0; block_in_line <= k; ++block_in_line) {
                     int num_elem_in_line = (block_in_line < k) ? m : l;
-                    j_loc = block_in_line * m + 1;
-                    int shift = line_of_blocks * n * m + line_in_block * num_line_in_block + 
-                        block_in_line  * m * m;
+                    j_loc = block_in_line * m;
+                    int shift = line_of_blocks * (m * m * k + l * m) + line_in_block * num_elem_in_line + 
+                        block_in_line  * m * num_line_in_block;
                     for(int q = 0; q < num_elem_in_line; ++q) {
                         j_glob = j_loc;
                         i_glob = ltg(m, p, proc_num, i_loc);
@@ -152,13 +152,13 @@ int fill_id_matrix(double* inverse, int n, int m, int proc_num, int p) {
             i_loc = line_of_blocks * m + line_in_block;
             for(block_in_line = 0; block_in_line <= k; ++block_in_line) {
                 int num_elem_in_line = (block_in_line < k) ? m : l;
-                j_loc = block_in_line * m + 1;
-                int shift = line_of_blocks * n * m + line_in_block * num_line_in_block + 
-                    block_in_line  * m * m;
+                j_loc = block_in_line * m ;
+                int shift = line_of_blocks *( m * m  * k + l * m) + line_in_block * num_elem_in_line + 
+                    block_in_line  * m * num_line_in_block;
                 for(int q = 0; q < num_elem_in_line; ++q) {
                     j_glob = j_loc;
                     i_glob = ltg(m, p, proc_num, i_loc);
-                    *(inverse + shift + q) =  (i_glob + 1 == j_glob + 1) ? 1 : 0;
+                    *(inverse + shift + q) =  (i_glob  == j_glob ) ? 1 : 0;
                     ++j_loc;
                 }
             }
@@ -185,7 +185,7 @@ int print_matrix(double* matrix, int n, int m, int proc_num, int p, int r, doubl
         int line_of_blocks_loc = line_of_blocks / p;
         if (proc_num == 0) {
             if (owner == 0) {
-                memcpy(buf, matrix + line_of_blocks_loc*(m * m * k + l * m), k * num_line_in_block * m 
+                memcpy(buf, matrix + line_of_blocks_loc * (m * m * k + l * m), k * num_line_in_block * m 
                         + num_line_in_block * l);
             } else {
                 MPI_Status st;
@@ -193,8 +193,8 @@ int print_matrix(double* matrix, int n, int m, int proc_num, int p, int r, doubl
             }
         } else {
             if (owner == proc_num) {
-                MPI_Send(matrix + line_of_blocks_loc*(m * m * k + l * m)
-                        ,  k * num_line_in_block * m + num_line_in_block * l, MPI_DOUBLE, 0, 0, comm);
+                MPI_Send(matrix + line_of_blocks_loc * (m * m * k + l * m)
+                        ,k * num_line_in_block * m + num_line_in_block * l, MPI_DOUBLE, 0, 0, comm);
             }
         }
 

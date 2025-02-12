@@ -120,7 +120,10 @@ int main(int argc, char* argv[]) {
     print_matrix(matrix, n, m, proc_num, p, r, tmp_row_matrix, comm);
 
 
-
+    delete[] matrix;
+    delete[] inverse;
+    delete[] tmp_row_inverse;
+    delete[] tmp_row_matrix;
     MPI_Finalize();
     return 0;
 }
