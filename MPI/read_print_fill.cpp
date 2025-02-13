@@ -55,7 +55,7 @@ int fill_matrix(double* matrix, int n, int m, int s, char* file_name, int proc_n
             for(line_in_block = 0; line_in_block < num_line_in_block; ++line_in_block) {
                 for(block_in_line = 0; block_in_line <= k; ++block_in_line) {
                     num_elem_in_line = (block_in_line < k) ? m : l;
-                    int shift = line_in_block * num_line_in_block + block_in_line * num_line_in_block * m;
+                    int shift = line_in_block * num_elem_in_line + block_in_line * num_line_in_block * m;
                     if (proc_num == 0) {
                         for(int q = 0; q < num_elem_in_line; ++q) {
                             if (fscanf(file, "%lf", buf + shift + q) == 1) {
@@ -81,8 +81,8 @@ lable:
             int line_of_blocks_loc = line_of_blocks / p;
             if (proc_num == 0) {
                 if (owner == 0) {
-                    memcpy(matrix + line_of_blocks_loc * (m * m * k + l * m), buf, k * num_line_in_block * m + l * 
-                            num_line_in_block);
+                    memcpy(matrix + line_of_blocks_loc * (m * m * k + l * m), buf, (k * num_line_in_block * m + l * 
+                            num_line_in_block) * sizeof(double));
                 } else {
                     MPI_Send(buf, k * num_line_in_block * m + l * num_line_in_block, MPI_DOUBLE, owner, 0, comm);
                 }
@@ -185,8 +185,8 @@ int print_matrix(double* matrix, int n, int m, int proc_num, int p, int r, doubl
         int line_of_blocks_loc = line_of_blocks / p;
         if (proc_num == 0) {
             if (owner == 0) {
-                memcpy(buf, matrix + line_of_blocks_loc * (m * m * k + l * m), k * num_line_in_block * m 
-                        + num_line_in_block * l);
+                memcpy(buf, matrix + line_of_blocks_loc * (m * m * k + l * m), (k * num_line_in_block * m 
+                        + num_line_in_block * l) * sizeof(double));
             } else {
                 MPI_Status st;
                 MPI_Recv(buf, k * num_line_in_block * m + num_line_in_block * l, MPI_DOUBLE, owner, 0, comm, &st);
@@ -208,6 +208,7 @@ int print_matrix(double* matrix, int n, int m, int proc_num, int p, int r, doubl
                         printf(" %10.3e", *(buf + shift + q));
                     }
                 }
+                printf("\n");
             }
         }
     }

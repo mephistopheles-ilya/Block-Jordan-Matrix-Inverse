@@ -80,10 +80,10 @@ int main(int argc, char* argv[]) {
         MPI_Finalize();
         return 0;
     }
-    memset(matrix, 0, max_rows * m * n);
-    memset(inverse, 0, max_rows * m * n);
-    memset(tmp_row_matrix, 0, n * m);
-    memset(tmp_row_inverse, 0, n * m);
+    memset(matrix, 0, max_rows * m * n * sizeof(double));
+    memset(inverse, 0, max_rows * m * n * sizeof(double));
+    memset(tmp_row_matrix, 0, n * m * sizeof(double));
+    memset(tmp_row_inverse, 0, n * m * sizeof(double));
 
     snprintf(buf, LEN, "max_rows = %d, rows = %d, proc_num = %d\n", max_rows, rows, proc_num);
     if(proc_num != 0) {
@@ -118,6 +118,10 @@ int main(int argc, char* argv[]) {
         printf("Initial Matrix :\n");
     }
     print_matrix(matrix, n, m, proc_num, p, r, tmp_row_matrix, comm);
+    if (proc_num == 0) {
+        printf("Inverse matrix\n");
+    }
+    print_matrix(inverse, n, m, proc_num, p, r, tmp_row_matrix, comm);
 
 
     delete[] matrix;
