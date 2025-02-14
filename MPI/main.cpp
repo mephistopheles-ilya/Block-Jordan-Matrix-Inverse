@@ -1,16 +1,22 @@
 #include "mpi.h"
+#include "read_print_fill.hpp"
+#include "matrix.hpp"
+#include "inverse.hpp"
+#include "discrepancy.hpp"
+
 #include <stdio.h>
 #include <new>
 #include <string.h>
 
 
 #include <fenv.h>
-#include "read_print_fill.hpp"
 
 #define LEN 256
 
 int main(int argc, char* argv[]) {
     int n = 0, m = 0, r = 0, s = 0, p = 0, proc_num = 0;
+    int task = 19;
+    double r1 = -1, r2 = -1, t1 = -1, t2 = -1;
     int error_loc = 0, error_glob = 0;
     char buf[256];
     MPI_Comm comm = MPI_COMM_WORLD;
@@ -63,8 +69,13 @@ int main(int argc, char* argv[]) {
     double* inverse = new(std::nothrow) double[max_rows * m * n];
     double* tmp_row_matrix = new(std::nothrow) double[m * n];
     double* tmp_row_inverse = new(std::nothrow) double[m * n];
+    int* permutations = new(std::nothrow) int[n/m];
+    int* permutations_m = new(std::nothrow) int[m];
+    double* block_m = new(std::nothrow) double[m * m];
+    double* inv_block = new(std::nothrow) double[m * m];
 
-    if (matrix == nullptr || inverse == nullptr || tmp_row_inverse == nullptr || tmp_row_matrix == nullptr) {
+    if (matrix == nullptr || inverse == nullptr || tmp_row_inverse == nullptr || tmp_row_matrix == nullptr
+            || permutations == nullptr || permutations_m == nullptr || block_m == nullptr || inv_block == nullptr) {
         error_loc = 1;
     }
 
@@ -77,6 +88,10 @@ int main(int argc, char* argv[]) {
         delete[] inverse;
         delete[] tmp_row_inverse;
         delete[] tmp_row_matrix;
+        delete[] permutations;
+        delete[] permutations_m;
+        delete[] block_m;
+        delete[] inv_block;
         MPI_Finalize();
         return 0;
     }
@@ -84,6 +99,10 @@ int main(int argc, char* argv[]) {
     memset(inverse, 0, max_rows * m * n * sizeof(double));
     memset(tmp_row_matrix, 0, n * m * sizeof(double));
     memset(tmp_row_inverse, 0, n * m * sizeof(double));
+    memset(permutations, 0, n/m * sizeof(int));
+    memset(permutations_m, 0, m * sizeof(int));
+    memset(block_m, 0, m * m * sizeof(double));
+    memset(inv_block, 0, m * m * sizeof(double));
 
     snprintf(buf, LEN, "max_rows = %d, rows = %d, proc_num = %d\n", max_rows, rows, proc_num);
     if(proc_num != 0) {
@@ -111,6 +130,10 @@ int main(int argc, char* argv[]) {
         delete[] inverse;
         delete[] tmp_row_inverse;
         delete[] tmp_row_matrix;
+        delete[] permutations;
+        delete[] permutations_m;
+        delete[] block_m;
+        delete[] inv_block;
         MPI_Finalize();
         return 0;
     }
@@ -118,16 +141,47 @@ int main(int argc, char* argv[]) {
         printf("Initial Matrix :\n");
     }
     print_matrix(matrix, n, m, proc_num, p, r, tmp_row_matrix, comm);
+
+    double matrix_norm = norm_matrix(matrix, n, m, p, proc_num, comm);
+    MPI_Barrier(comm);
+    t1 = get_full_time();
+    error_loc = inverse_matrix(matrix, inverse, n, m, permutations, block_m, inv_block
+            , permutations_m, matrix_norm, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm); 
+    t1 = get_full_time() - t1;
+    MPI_Allreduce(&error_loc, &error_glob, 1, MPI_INT, MPI_MAX, comm);
+    if (error_glob != 0) {
+        if (proc_num == 0) {
+            printf("This algorithm can't be applied\n");
+        }
+    }
+
+    if (error_glob == 0) {
+        MPI_Barrier(comm);
+        t2 = get_full_time();
+        r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
+        r2 = calculate_discrepancy(inverse, matrix, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
+        t2 = get_full_time() - t2;
+    }
+
     if (proc_num == 0) {
-        printf("Inverse matrix\n");
+        printf("Inverse matrix :\n");
     }
     print_matrix(inverse, n, m, proc_num, p, r, tmp_row_matrix, comm);
+
+    if(proc_num == 0) {
+        printf("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",
+                argv[0], task, r1, r2, t1, t2, s, n, m, p);
+    }
 
 
     delete[] matrix;
     delete[] inverse;
     delete[] tmp_row_inverse;
     delete[] tmp_row_matrix;
+    delete[] permutations;
+    delete[] permutations_m;
+    delete[] block_m;
+    delete[] inv_block;
     MPI_Finalize();
     return 0;
 }

@@ -2,6 +2,8 @@
 
 #include "mpi.h"
 
+double get_cpu_time();
+double get_full_time();
 int get_max_rows(int n, int m, int p);
 int get_rows(int n, int m, int p, int proc_num);
 int fill_matrix(double* matrix, int n, int m, int s, char* file_name, int proc_num, int p

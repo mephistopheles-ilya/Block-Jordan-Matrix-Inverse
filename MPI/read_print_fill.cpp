@@ -1,8 +1,21 @@
 #include <stdio.h>
 #include <algorithm>
 #include <cstring>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "read_print_fill.hpp"
+
+double get_cpu_time() {
+    struct rusage buf;
+    getrusage(RUSAGE_THREAD, &buf);
+    return (double)(buf.ru_utime.tv_sec) + (double)(buf.ru_utime.tv_usec)/1000000.;
+}
+double get_full_time() {
+    struct timeval buf;
+    gettimeofday(&buf, 0);
+    return (double)(buf.tv_sec) + (double)(buf.tv_usec)/1000000.;
+}
 
 int get_max_rows(int n, int m, int p) {
     int b = (n + m - 1)/m;
