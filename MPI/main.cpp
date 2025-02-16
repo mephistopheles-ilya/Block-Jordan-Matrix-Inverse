@@ -128,6 +128,9 @@ int main(int argc, char* argv[]) {
     print_matrix(matrix, n, m, proc_num, p, r, tmp_row_matrix, comm);
 
     double matrix_norm = norm_matrix(matrix, n, m, p, proc_num, comm);
+    for(int i = 0; i < (n/m); ++i) {
+        permutations[i] = i;
+    }
     MPI_Barrier(comm);
     t1 = get_full_time();
     error_loc = inverse_matrix(matrix, inverse, n, m, permutations, block_m, inv_block
