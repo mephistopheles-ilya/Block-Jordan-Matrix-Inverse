@@ -61,8 +61,8 @@ int main(int argc, char* argv[]) {
     
     int max_rows = get_max_rows(n, m, p);
 
-    double* matrix = new(std::nothrow) double[max_rows * m * n];
-    double* inverse = new(std::nothrow) double[max_rows * m * n];
+    double* matrix = new(std::nothrow) double[(max_rows + 1) * m * n + p * m * m];
+    double* inverse = new(std::nothrow) double[(max_rows + 1) * m * n + p * m * m];
     double* tmp_row_matrix = new(std::nothrow) double[m * n];
     double* tmp_row_inverse = new(std::nothrow) double[m * n];
     int* permutations = new(std::nothrow) int[n/m];
@@ -91,8 +91,8 @@ int main(int argc, char* argv[]) {
         MPI_Finalize();
         return 0;
     }
-    memset(matrix, 0, max_rows * m * n * sizeof(double));
-    memset(inverse, 0, max_rows * m * n * sizeof(double));
+    memset(matrix, 0, ((max_rows + 1) * m * n + p * m * m) * sizeof(double));
+    memset(inverse, 0, ((max_rows + 1) * m * n + p * m * m) * sizeof(double));
     memset(tmp_row_matrix, 0, n * m * sizeof(double));
     memset(tmp_row_inverse, 0, n * m * sizeof(double));
     memset(permutations, 0, n/m * sizeof(int));

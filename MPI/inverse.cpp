@@ -95,11 +95,12 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
     int l = n - m * k;
     int i_glob = 0, i_loc = 0;
     int el_in_block_line = k * m * m + l * m;
-    int inv_exist_loc = 0, inv_exist_glob = 0;
+    int inv_exist_loc = 0;
     int send_count_matrix = 0, send_count_inv = 0;
     int min_col_loc = 0, min_col_glob = 0;
-    double current_block_norm = 0, block_min_norm_loc = 0, block_min_norm_glob = 0;
-    int u = 0, v = 0;
+    double current_block_norm = 0, block_min_norm_loc = 0;
+    int u = 0, v = 0, tmp_i;
+    int real_num_in_my_part = 0;
 
     for(i_glob = 0; i_glob < k; ++i_glob) {
         i_loc = i_glob / p;
@@ -110,10 +111,10 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
         MPI_Scatter(inverse + i_loc * el_in_block_line, send_count_inv, MPI_DOUBLE
                 , inverse_buf, send_count_inv, MPI_DOUBLE, proc_num, comm);
         inv_exist_loc = 0;
-        inv_exist_glob = 0;
         min_col_loc = 0;
         block_min_norm_loc = std::numeric_limits<double>::max();
-        for(int q = 0; q < send_count_matrix; ++q) {
+        real_num_in_my_part = (k - i_glob - send_count_matrix * (proc_num + 1));
+        for(int q = 0; q < send_count_matrix + real_num_in_my_part; ++q) {
             memcpy(block_m, matrix_buf, m * m * sizeof(double)); 
             fill_id_block(inv_block_m, m);
             if (inverse_block(block_m, inv_block_m, permutations_m, m, matrix_norm) == 0) {
@@ -131,47 +132,74 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
         } else {
             di_loc.x = 0;
         }
-        di_loc.y = min_col_loc + send_count_matrix * p + i_glob;
+        di_loc.y = min_col_loc + send_count_matrix * proc_num + i_glob;
 
         MPI_Allreduce(&di_loc, &di_glob, 1, MPI_DOUBLE_INT, MPI_MAXLOC, comm);
         if (di_glob.x <= 0) {
             return 1;
         }
+        min_col_glob = di_glob.y;
 
         if (proc_num == (di_glob.y - i_glob) / send_count_matrix) {
-            memcpy(block_m, matrix_buf + m * m * (di_glob.y % send_count_matrix), m * m * sizeof(double));;
+            memcpy(block_m, matrix_buf + m * m * ((di_glob.y - i_glob) % send_count_matrix), m * m * sizeof(double));;
         }
-        MPI_Bcast(block_m, m * m, MPI_DOUBLE, proc_num, comm);
+        MPI_Bcast(block_m, m * m, MPI_DOUBLE, (di_glob.y - i_glob)/send_count_matrix, comm);
         fill_id_block(block_m, m);
         inverse_block(block_m, inv_block_m, permutations_m, m, matrix_norm);
 
-        for(int q = 0; q < send_count_matrix; ++q) {
+        for(int q = 0; q < send_count_matrix + real_num_in_my_part; ++q) {
             block_mult(inv_block_m, m, m, matrix_buf + m * m * q, m, block_m);
             memcpy(matrix_buf + m * m * q, block_m, m * m * sizeof(double));
         }
 
-        for(int q = 0; q < send_count_inv; ++q) {
+        real_num_in_my_part = (i_glob + 1 - send_count_inv * (proc_num + 1));
+
+        for(int q = 0; q < send_count_inv + real_num_in_my_part; ++q) {
             block_mult(inv_block_m, m, m, inverse_buf + m * m * q, m, block_m);
             memcpy(inverse_buf + m * m * q, block_m, m * m * sizeof(double));
         }
 
-        MPI_Allgather(matrix_buf, send_count_matrix, MPI_DOUBLE, matrix_buf, send_count_matrix, MPI_DOUBLE, comm);
-        MPI_Allgather(inverse_buf,send_count_inv, MPI_DOUBLE, inverse_buf, send_count_inv, MPI_DOUBLE, comm);
+        int max_rows = get_max_rows(n, m, p);
+        MPI_Allgather(matrix_buf, send_count_matrix, MPI_DOUBLE
+                , matrix + max_rows * el_in_block_line, send_count_matrix, MPI_DOUBLE, comm);
+        MPI_Allgather(inverse_buf,send_count_inv, MPI_DOUBLE
+                , inverse + max_rows * el_in_block_line, send_count_inv, MPI_DOUBLE, comm);
 
-        
+        if (i_glob != min_col_glob) {
+            swap_block_col(matrix, n, m, i_glob, min_col_glob, proc_num, p, block_m);
+            memcpy(matrix + max_rows * el_in_block_line, block_m, m * m * sizeof(double));
+            memcpy(matrix + max_rows * el_in_block_line + m * m * (min_col_glob - i_glob)
+                    , matrix + max_rows * el_in_block_line, m * m * sizeof(double)); 
+            tmp_i = permutations[i_glob];
+            permutations[i_glob] = permutations[min_col_glob];
+            permutations[min_col_glob] = tmp_i;
+        }
 
         int rows = get_rows(n, m, p, proc_num);
         for(v = 0; v < rows; ++v) {
             for(u = i_glob + 1; u < k; ++u) {
+                if (i_glob % p != proc_num && i_glob / p != u)
                 block_mult_sub(matrix + v * el_in_block_line + i_glob * m * m
-                        , m , m, matrix + i_glob * el_in_block_line + u * m * m, m
+                        , m , m, matrix + max_rows * el_in_block_line + (u - i_glob) * m * m, m
                         , matrix + v * el_in_block_line + u * m * m);
             }
             for(u = 0; u <= i_glob; ++u) {
+                if (i_glob % p != proc_num && i_glob / p != u)
                 block_mult_sub(matrix + v * el_in_block_line +  i_glob * m * m
-                        , m , m, inverse + i_glob * el_in_block_line + u * m * m, m
+                        , m , m, inverse + max_rows * el_in_block_line + (u - i_glob) * m * m, m
                         , inverse + v * el_in_block_line + u * m * m);
             }
+        }
+    }
+
+    for(int i = 0; i < k;) {
+        if(permutations[i] != i) {
+            swap_block_line(inverse, n, m, i, permutations[i], proc_num, p, inverse_buf, comm);  
+            tmp_i = permutations[i];
+            permutations[i] = permutations[tmp_i];
+            permutations[tmp_i] = tmp_i;
+        } else {
+            ++i;
         }
     }
 
