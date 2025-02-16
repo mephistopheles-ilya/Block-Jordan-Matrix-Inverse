@@ -11,16 +11,13 @@
 
 #include <fenv.h>
 
-#define LEN 256
 
 int main(int argc, char* argv[]) {
     int n = 0, m = 0, r = 0, s = 0, p = 0, proc_num = 0;
     int task = 19;
-    double r1 = -1, r2 = -1, t1 = -1, t2 = -1;
+    double r1 = -1, r2 = -1, t1 = 0, t2 = 0;
     int error_loc = 0, error_glob = 0;
-    char buf[256];
     MPI_Comm comm = MPI_COMM_WORLD;
-    MPI_Status status;
     MPI_Init(&argc, &argv);
 
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
@@ -63,7 +60,6 @@ int main(int argc, char* argv[]) {
     }
     
     int max_rows = get_max_rows(n, m, p);
-    int rows = get_rows(n, m, p, proc_num);
 
     double* matrix = new(std::nothrow) double[max_rows * m * n];
     double* inverse = new(std::nothrow) double[max_rows * m * n];
@@ -103,17 +99,6 @@ int main(int argc, char* argv[]) {
     memset(permutations_m, 0, m * sizeof(int));
     memset(block_m, 0, m * m * sizeof(double));
     memset(inv_block, 0, m * m * sizeof(double));
-
-    snprintf(buf, LEN, "max_rows = %d, rows = %d, proc_num = %d\n", max_rows, rows, proc_num);
-    if(proc_num != 0) {
-        MPI_Send(buf, strlen(buf) + 1, MPI_CHAR, 0, 0, comm);
-    } else {
-        printf("%s", buf);
-        for(int i = 1; i < p; ++i) {
-            MPI_Recv(buf, LEN, MPI_CHAR, i, 0, comm, &status);
-            printf("%s", buf);
-        }
-    }
 
     fill_id_matrix(inverse, n, m, proc_num, p);
     error_loc = fill_matrix(matrix, n, m, s, argv[5], proc_num, p, tmp_row_matrix, comm);
@@ -155,7 +140,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (error_glob == 0) {
+    if (error_glob == 0 && n <= 11000) {
+        fill_matrix(matrix, n, m, s, argv[5], proc_num, p, tmp_row_matrix, comm);
+
         MPI_Barrier(comm);
         t2 = get_full_time();
         r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
@@ -163,10 +150,12 @@ int main(int argc, char* argv[]) {
         t2 = get_full_time() - t2;
     }
 
-    if (proc_num == 0) {
-        printf("Inverse matrix :\n");
+    if(error_glob == 0) {
+        if (proc_num == 0) {
+            printf("Inverse matrix :\n");
+        }
+        print_matrix(inverse, n, m, proc_num, p, r, tmp_row_matrix, comm);
     }
-    print_matrix(inverse, n, m, proc_num, p, r, tmp_row_matrix, comm);
 
     if(proc_num == 0) {
         printf("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",

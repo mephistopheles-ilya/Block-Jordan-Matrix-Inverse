@@ -8,19 +8,27 @@ endif
 			-Werror -pedantic -pedantic-errors -Wfloat-equal -Wpointer-arith -Wformat-security\
 			-Wmissing-format-attribute -Wformat=1 -Wwrite-strings -Wcast-align -Wno-long-long\
 			-Woverloaded-virtual -Wnon-virtual-dtor -Wcast-qual -Wno-suggest-attribute=format\
+#/lib/x86_64-linux-gnu/mpich/include
 
-CXXFLAGS ?=  -O0 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wunused -Wcast-align\
+#CXXFLAGS ?=  -O0 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wunused -Wcast-align\
 			-pedantic -pedantic-errors -Wfloat-equal -Wpointer-arith -Wformat-security\
 			-Wmissing-format-attribute -Wformat=1 -Wwrite-strings -Wcast-align -Wno-long-long\
 			-Woverloaded-virtual -Wnon-virtual-dtor -Wcast-qual -Wno-suggest-attribute=format\
+			-fsanitize=undefined,address
+
+CXXFLAGS ?= -isystem /usr/lib/x86_64-linux-gnu/openmpi/include -O0 -mfpmath=sse -fstack-protector-all\
+			-g -W -Wall -Wextra -Wunused -Wcast-align -Werror -pedantic -pedantic-errors -Wfloat-equal\
+			-Wpointer-arith -Wformat-security -Wmissing-format-attribute -Wformat=1 -Wwrite-strings\
+			-Wcast-align -Wno-long-long -Woverloaded-virtual -Wnon-virtual-dtor -Wcast-qual\
+			-Wno-suggest-attribute=format\
 			-fsanitize=undefined,address
 
 #CXXFLAGS ?= -fsanitize=leak,undefined,address -g
 LDFLAGS ?=  -fsanitize=undefined,address
 #CXXFLAGS ?= -O3 -mfpmath=sse
 
-CSRC = main.cpp read_print_fill.cpp
-COBJ = main.o read_print_fill.o
+CSRC = main.cpp read_print_fill.cpp matrix.cpp inverse.cpp discrepancy.cpp
+COBJ = main.o read_print_fill.o matrix.o inverse.o discrepancy.o
 
 %.o : %.cpp
 	mpicxx $(CXXFLAGS) -c $^ -o $@
