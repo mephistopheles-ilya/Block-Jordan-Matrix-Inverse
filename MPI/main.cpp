@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
     
     int max_rows = get_max_rows(n, m, p);
 
+    //if p > k + 1
     double* matrix = new(std::nothrow) double[(max_rows + 1) * m * n + p * m * m];
     double* inverse = new(std::nothrow) double[(max_rows + 1) * m * n + p * m * m];
     double* tmp_row_matrix = new(std::nothrow) double[m * n];
