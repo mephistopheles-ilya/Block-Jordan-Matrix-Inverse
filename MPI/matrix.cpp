@@ -295,18 +295,23 @@ void swap_block_line(double* matrix, int n, int m, int i_glob, int j_glob, int p
     int k = n/m;
     int l = n - m * k;
     int el_in_block_line = m * m * k + l * m;
-    if (proc_num == i_glob%p) {
+    if (proc_num == i_glob % p && proc_num == j_glob % p) {
+        int i_loc = i_glob/p;
+        int j_loc = j_glob/p;
+        memcpy(buf, matrix + i_loc * el_in_block_line, el_in_block_line * sizeof(double));
+        memcpy(matrix + i_loc * el_in_block_line, matrix + j_loc * el_in_block_line, el_in_block_line * sizeof(double));
+        memcpy(matrix + j_loc * el_in_block_line, buf, el_in_block_line * sizeof(double));
+    } else if (proc_num == i_glob%p) {
         MPI_Status st;
         int i_loc = i_glob/p;
-        MPI_Sendrecv(matrix + i_loc * el_in_block_line, el_in_block_line, MPI_DOUBLE
-                , j_glob%p, 0, buf, el_in_block_line, MPI_DOUBLE, i_glob%p, 0, comm, &st);
+        MPI_Send(matrix + i_loc * el_in_block_line, el_in_block_line, MPI_DOUBLE, j_glob%p, 0, comm);
+        MPI_Recv(buf, el_in_block_line, MPI_DOUBLE, j_glob%p, 0, comm, &st);
         memcpy(matrix + i_loc * el_in_block_line, buf, el_in_block_line * sizeof(double));
-    }
-    if (proc_num == j_glob%p) {
+    } else if (proc_num == j_glob%p) {
         MPI_Status st;
         int j_loc = j_glob/p;
-        MPI_Sendrecv(matrix + j_loc * el_in_block_line, el_in_block_line, MPI_DOUBLE
-                , i_glob%p, 0, buf, el_in_block_line, MPI_DOUBLE, j_glob%p, 0, comm, &st);
+        MPI_Recv(buf, el_in_block_line, MPI_DOUBLE, i_glob%p, 0, comm, &st);
+        MPI_Send(matrix + j_loc * el_in_block_line, el_in_block_line, MPI_DOUBLE, i_glob%p, 0, comm);
         memcpy(matrix + j_loc * el_in_block_line, buf, el_in_block_line * sizeof(double));
     }
 }

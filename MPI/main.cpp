@@ -61,11 +61,10 @@ int main(int argc, char* argv[]) {
     
     int max_rows = get_max_rows(n, m, p);
 
-    //if p > k + 1
     double* matrix = new(std::nothrow) double[(max_rows + 1) * m * n + p * m * m];
     double* inverse = new(std::nothrow) double[(max_rows + 1) * m * n + p * m * m];
-    double* tmp_row_matrix = new(std::nothrow) double[m * n];
-    double* tmp_row_inverse = new(std::nothrow) double[m * n];
+    double* tmp_row_matrix = new(std::nothrow) double[m * n + m * m];
+    double* tmp_row_inverse = new(std::nothrow) double[m * n + m * m];
     int* permutations = new(std::nothrow) int[n/m];
     int* permutations_m = new(std::nothrow) int[m];
     double* block_m = new(std::nothrow) double[m * m];
@@ -94,8 +93,8 @@ int main(int argc, char* argv[]) {
     }
     memset(matrix, 0, ((max_rows + 1) * m * n + p * m * m) * sizeof(double));
     memset(inverse, 0, ((max_rows + 1) * m * n + p * m * m) * sizeof(double));
-    memset(tmp_row_matrix, 0, n * m * sizeof(double));
-    memset(tmp_row_inverse, 0, n * m * sizeof(double));
+    memset(tmp_row_matrix, 0, (n * m + m * m) * sizeof(double));
+    memset(tmp_row_inverse, 0, (n * m  + m * m) * sizeof(double));
     memset(permutations, 0, n/m * sizeof(int));
     memset(permutations_m, 0, m * sizeof(int));
     memset(block_m, 0, m * m * sizeof(double));
@@ -129,6 +128,9 @@ int main(int argc, char* argv[]) {
     print_matrix(matrix, n, m, proc_num, p, r, tmp_row_matrix, comm);
 
     double matrix_norm = norm_matrix(matrix, n, m, p, proc_num, comm);
+    if (proc_num == 0) {
+        printf("Matrix norm: %lf\n", matrix_norm);
+    }
     for(int i = 0; i < (n/m); ++i) {
         permutations[i] = i;
     }
@@ -145,12 +147,12 @@ int main(int argc, char* argv[]) {
     }
 
     if (error_glob == 0 && n <= 11000) {
-        fill_matrix(matrix, n, m, s, argv[5], proc_num, p, tmp_row_matrix, comm);
+        //fill_matrix(matrix, n, m, s, argv[5], proc_num, p, tmp_row_matrix, comm);
 
         MPI_Barrier(comm);
         t2 = get_full_time();
-        r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
-        r2 = calculate_discrepancy(inverse, matrix, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
+        //r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
+        //r2 = calculate_discrepancy(inverse, matrix, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
         t2 = get_full_time() - t2;
     }
 

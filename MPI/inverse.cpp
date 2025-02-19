@@ -116,12 +116,12 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
         min_col_loc = 0;
         block_min_norm_loc = std::numeric_limits<double>::max();
         real_num_in_my_part = (blocks_in_line - i_glob - send_count_matrix * (proc_num + 1));
-        real_num_in_my_part = (real_num_in_my_part > 0 && real_num_in_my_part <= send_count_matrix && l != 0) ? 
-            --real_num_in_my_part : real_num_in_my_part;
-        real_num_in_my_part = (real_num_in_my_part > 0) ? real_num_in_my_part 
+        real_num_in_my_part = (real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_matrix && l != 0) ? 
+            (real_num_in_my_part - 1) : real_num_in_my_part;
+        real_num_in_my_part = (real_num_in_my_part > 0) ? send_count_matrix
             : send_count_matrix + real_num_in_my_part;
         for(int q = 0; q < real_num_in_my_part; ++q) {
-            memcpy(block_m, matrix_buf, m * m * sizeof(double)); 
+            memcpy(block_m, matrix_buf + q * m * m, m * m * sizeof(double)); 
             fill_id_block(inv_block_m, m);
             if (inverse_block(block_m, inv_block_m, permutations_m, m, matrix_norm) == 0) {
                 current_block_norm = norm_block(inv_block_m, m);
@@ -158,46 +158,63 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
             memcpy(matrix_buf + m * m * q, block_m, m * m * sizeof(double));
         }
         real_num_in_my_part = (blocks_in_line - i_glob - send_count_matrix * (proc_num + 1));
-        if(real_num_in_my_part > 0 && real_num_in_my_part <= send_count_inv && l != 0) {
+        if(real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_matrix && l != 0) {
             block_mult(inv_block_m, m, m, matrix_buf + m * m * q, l, block_m);
             memcpy(matrix_buf + m * m * q, block_m, l * m * sizeof(double));
         }
 
         real_num_in_my_part = (i_glob + 1 - send_count_inv * (proc_num + 1));
-        real_num_in_my_part = (real_num_in_my_part > 0) ? 0 : real_num_in_my_part;
+        real_num_in_my_part = (real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_inv && l != 0) ? 
+            (real_num_in_my_part - 1) : real_num_in_my_part;
+        real_num_in_my_part = (real_num_in_my_part > 0) ? send_count_inv
+            : send_count_inv + real_num_in_my_part;
 
-        for(int q = 0; q < send_count_inv + real_num_in_my_part; ++q) {
+        for(q = 0; q < real_num_in_my_part; ++q) {
             block_mult(inv_block_m, m, m, inverse_buf + m * m * q, m, block_m);
             memcpy(inverse_buf + m * m * q, block_m, m * m * sizeof(double));
         }
+        real_num_in_my_part = (i_glob + 1 - send_count_inv * (proc_num + 1));
+        if (real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_matrix) {
+            memcpy(inverse_buf + m * m * q, inv_block_m, m * m * sizeof(double));
+        }
+
 
         int max_rows = get_max_rows(n, m, p);
         MPI_Allgather(matrix_buf, send_count_matrix * m * m, MPI_DOUBLE
                 , matrix + max_rows * el_in_block_line, send_count_matrix * m * m, MPI_DOUBLE, comm);
         MPI_Allgather(inverse_buf, send_count_inv * m * m, MPI_DOUBLE
                 , inverse + max_rows * el_in_block_line, send_count_inv * m * m, MPI_DOUBLE, comm);
+        if (i_glob % p == proc_num) {
+            memcpy(matrix + i_loc * el_in_block_line + i_glob * m * m, matrix + max_rows * el_in_block_line
+                    , ((k - i_glob) * m * m + l * m) * sizeof(double));
+            memcpy(inverse + i_loc * el_in_block_line, inverse + max_rows * el_in_block_line
+                    , (i_glob + 1) * m * m * sizeof(double));
+        }
 
         if (i_glob != min_col_glob) {
+            if (proc_num == 0) {
+                printf("SWAP\n");
+            }
             swap_block_col(matrix, n, m, i_glob, min_col_glob, proc_num, p, block_m);
-            memcpy(matrix + max_rows * el_in_block_line, block_m, m * m * sizeof(double));
             memcpy(matrix + max_rows * el_in_block_line + m * m * (min_col_glob - i_glob)
                     , matrix + max_rows * el_in_block_line, m * m * sizeof(double)); 
+            memcpy(matrix + max_rows * el_in_block_line, block_m, m * m * sizeof(double));
             tmp_i = permutations[i_glob];
             permutations[i_glob] = permutations[min_col_glob];
             permutations[min_col_glob] = tmp_i;
         }
 
         int rows = get_rows(n, m, p, proc_num);
-        rows = (small_row == true) ? --rows : rows;
+        rows = (small_row == true) ? (rows - 1) : rows;
         for(v = 0; v < rows; ++v) {
-            if (i_glob % p != proc_num && i_glob / p != v) {
+            if (i_glob % p != proc_num || i_glob / p != v) {
                 for(u = i_glob + 1; u < k; ++u) {
                     block_mult_sub(matrix + v * el_in_block_line + i_glob * m * m
                             , m , m, matrix + max_rows * el_in_block_line + (u - i_glob) * m * m, m
                             , matrix + v * el_in_block_line + u * m * m);
                 }
                 block_mult_sub(matrix + v * el_in_block_line +  i_glob * m * m
-                        , m , m, matrix + max_rows * el_in_block_line + u * m * m, l
+                        , m , m, matrix + max_rows * el_in_block_line + (u - i_glob) * m * m, l
                         , matrix + v * el_in_block_line + u * m * m);
                 for(u = 0; u <= i_glob; ++u) {
                     block_mult_sub(matrix + v * el_in_block_line +  i_glob * m * m
@@ -233,34 +250,37 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
             return 1;
         }
         i_loc = i_glob / p;
-        send_count_matrix = (blocks_in_line - i_glob + p - 1) / p;
         send_count_inv = (i_glob + 1 + p - 1) / p;
 
         MPI_Scatter(inverse + i_loc * el_in_block_line, send_count_inv * l * m, MPI_DOUBLE
                 , inverse_buf, send_count_inv * l * m, MPI_DOUBLE, i_glob%p, comm);
 
-        real_num_in_my_part = (i_glob + 1 - send_count_matrix * (proc_num + 1));
-        real_num_in_my_part = (real_num_in_my_part > 0 && real_num_in_my_part <= send_count_inv) ? 
-            --real_num_in_my_part : real_num_in_my_part;
-        real_num_in_my_part = (real_num_in_my_part > 0) ? real_num_in_my_part 
-            : send_count_matrix + real_num_in_my_part;
+        real_num_in_my_part = (i_glob + 1 - send_count_inv * (proc_num + 1));
+        real_num_in_my_part = (real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_inv && l != 0) ? 
+            (real_num_in_my_part - 1) : real_num_in_my_part;
+        real_num_in_my_part = (real_num_in_my_part > 0) ? send_count_inv
+            : send_count_inv + real_num_in_my_part;
+
 
         for(q = 0; q < real_num_in_my_part; ++q) {
             block_mult(inv_block_m, l, l, inverse_buf + l * m * q, m, block_m);
             memcpy(inverse_buf + l * m * q, block_m, l * m * sizeof(double));
         }
-        real_num_in_my_part = (i_glob + 1 - send_count_matrix * (proc_num + 1));
-        if(real_num_in_my_part > 0 && real_num_in_my_part <= send_count_inv) {
-            block_mult(inv_block_m, l, l, inverse_buf + l * m * q, l, block_m);
-            memcpy(inverse_buf + l * m * q, block_m, l * l * sizeof(double));
+        real_num_in_my_part = (i_glob + 1 - send_count_inv * (proc_num + 1));
+        if(real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_inv) {
+            memcpy(inverse_buf + l * m * q, inv_block_m, l * l * sizeof(double));
         }
 
         int max_rows = get_max_rows(n, m, p);
         MPI_Allgather(inverse_buf, send_count_inv * m * l, MPI_DOUBLE
                 , inverse + max_rows * el_in_block_line, send_count_inv * m * l, MPI_DOUBLE, comm);
+        if (i_glob % p == proc_num) {
+            memcpy(inverse + i_loc * el_in_block_line, inverse + max_rows * el_in_block_line
+                    , (k * l * m + l * m) * sizeof(double));
+        }
 
         int rows = get_rows(n, m, p, proc_num);
-        rows = (small_row == true) ? --rows : rows;
+        rows = (small_row == true) ? (rows - 1) : rows;
         for(v = 0; v < rows; ++v) {
             for(u = 0; u < i_glob; ++u) {
                 block_mult_sub(matrix + v * el_in_block_line +  i_glob * m * m
