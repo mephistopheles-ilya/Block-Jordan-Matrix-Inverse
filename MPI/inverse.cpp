@@ -174,7 +174,7 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
             memcpy(inverse_buf + m * m * q, block_m, m * m * sizeof(double));
         }
         real_num_in_my_part = (i_glob + 1 - send_count_inv * (proc_num + 1));
-        if (real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_matrix) {
+        if (real_num_in_my_part <= 0 && real_num_in_my_part > -send_count_inv) {
             memcpy(inverse_buf + m * m * q, inv_block_m, m * m * sizeof(double));
         }
 
@@ -192,9 +192,6 @@ int inverse_matrix(double* matrix, double* inverse, int n, int m, int* permutati
         }
 
         if (i_glob != min_col_glob) {
-            if (proc_num == 0) {
-                printf("SWAP\n");
-            }
             swap_block_col(matrix, n, m, i_glob, min_col_glob, proc_num, p, block_m);
             memcpy(matrix + max_rows * el_in_block_line + m * m * (min_col_glob - i_glob)
                     , matrix + max_rows * el_in_block_line, m * m * sizeof(double)); 
