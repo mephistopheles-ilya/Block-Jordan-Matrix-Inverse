@@ -123,14 +123,11 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     if (proc_num == 0) {
-        printf("Initial Matrix :\n");
+        printf("Initial matrix :\n");
     }
     print_matrix(matrix, n, m, proc_num, p, r, tmp_row_matrix, comm);
 
     double matrix_norm = norm_matrix(matrix, n, m, p, proc_num, comm);
-    if (proc_num == 0) {
-        printf("Matrix norm: %lf\n", matrix_norm);
-    }
     for(int i = 0; i < (n/m); ++i) {
         permutations[i] = i;
     }
@@ -147,12 +144,14 @@ int main(int argc, char* argv[]) {
     }
 
     if (error_glob == 0 && n <= 11000) {
-        //fill_matrix(matrix, n, m, s, argv[5], proc_num, p, tmp_row_matrix, comm);
+        fill_matrix(matrix, n, m, s, argv[5], proc_num, p, tmp_row_matrix, comm);
 
         MPI_Barrier(comm);
         t2 = get_full_time();
-        //r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
-        //r2 = calculate_discrepancy(inverse, matrix, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm);
+        r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm
+                , tmp_row_matrix);
+        r2 = calculate_discrepancy(inverse, matrix, n, m, tmp_row_matrix, tmp_row_inverse, proc_num, p, comm
+                , tmp_row_matrix);
         t2 = get_full_time() - t2;
     }
 
@@ -166,6 +165,7 @@ int main(int argc, char* argv[]) {
     if(proc_num == 0) {
         printf("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",
                 argv[0], task, r1, r2, t1, t2, s, n, m, p);
+        //printf("%e %e\n", r1, r2); 
     }
 
 
