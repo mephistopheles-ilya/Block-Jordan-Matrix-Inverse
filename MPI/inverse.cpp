@@ -4,6 +4,7 @@
 #include "read_print_fill.hpp"
 
 #include <cmath>
+#include <cstring>
 
 #define EPS 1e-16
 

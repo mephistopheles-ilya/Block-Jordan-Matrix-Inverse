@@ -15,7 +15,7 @@
 int main(int argc, char* argv[]) {
     int n = 0, m = 0, r = 0, s = 0, p = 0, proc_num = 0;
     int task = 19;
-    double r1 = -1, r2 = -1, t1 = 0, t2 = 0;
+    double r1 = 0, r2 = 0, t1 = 0, t2 = 0;
     int error_loc = 0, error_glob = 0;
     MPI_Comm comm = MPI_COMM_WORLD;
     MPI_Init(&argc, &argv);
@@ -138,6 +138,8 @@ int main(int argc, char* argv[]) {
     t1 = get_full_time() - t1;
     MPI_Allreduce(&error_loc, &error_glob, 1, MPI_INT, MPI_MAX, comm);
     if (error_glob != 0) {
+        r1 = -1;
+        r2 = -1;
         if (proc_num == 0) {
             printf("This algorithm can't be applied\n");
         }
@@ -165,7 +167,6 @@ int main(int argc, char* argv[]) {
     if(proc_num == 0) {
         printf("%s : Task = %d Res1 = %e Res2 = %e T1 = %.2f T2 = %.2f S = %d N = %d M = %d P = %d\n",
                 argv[0], task, r1, r2, t1, t2, s, n, m, p);
-        //printf("%e %e\n", r1, r2); 
     }
 
 
