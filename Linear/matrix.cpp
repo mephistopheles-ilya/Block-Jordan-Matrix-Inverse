@@ -1,11 +1,197 @@
 #include <math.h>
 #include <string.h>
+#include <immintrin.h>
+
+#if 0
+void block_mult(double* A, int av, int ag, double* B, int bg, double* C) {
+    int av_reminder = av % 4;
+    int bg_reminder = bg % 4;
+    int _av = av - av_reminder;
+    int _bg = bg - bg_reminder;
+    int i = 0, j = 0, q = 0;
+    __m128d c00, c01, c10, c11, c20, c21, c30, c31;
+    for(i = 0; i < _av; i += 4) {
+        for(j = 0; j < _bg; j+= 4) {
+            c00 = _mm_setzero_pd(); c01 = _mm_setzero_pd();
+            c10 = _mm_setzero_pd(); c11 = _mm_setzero_pd();
+            c20 = _mm_setzero_pd(); c21 = _mm_setzero_pd();
+            c30 = _mm_setzero_pd(); c31 = _mm_setzero_pd();
+            for(q = 0; q < ag; ++q) {
+                __m128d a0 = _mm_load1_pd(A + ag * (i) + q);
+                __m128d a1 = _mm_load1_pd(A + ag * (i + 1) + q);
+                __m128d a2 = _mm_load1_pd(A + ag * (i + 2) + q);
+                __m128d a3 = _mm_load1_pd(A + ag * (i + 3) + q);
+                __m128d b0 = _mm_loadu_pd(B + bg * q + (j));
+                __m128d b1 = _mm_loadu_pd(B + bg * q + (j + 2));
+                c00 = _mm_add_pd(c00, _mm_mul_pd(a0, b0));
+                c01 = _mm_add_pd(c01, _mm_mul_pd(a0, b1));
+                c10 = _mm_add_pd(c10, _mm_mul_pd(a1, b0));
+                c11 = _mm_add_pd(c11, _mm_mul_pd(a1, b1));
+                c20 = _mm_add_pd(c20, _mm_mul_pd(a2, b0));
+                c21 = _mm_add_pd(c21, _mm_mul_pd(a2, b1));
+                c30 = _mm_add_pd(c30, _mm_mul_pd(a3, b0));
+                c31 = _mm_add_pd(c31, _mm_mul_pd(a3, b1));
+            }
+            _mm_storeu_pd(C + bg * (i) + (j), c00);
+            _mm_storeu_pd(C + bg * (i) + (j + 2), c01);
+            _mm_storeu_pd(C + bg * (i + 1) + (j), c10);
+            _mm_storeu_pd(C + bg * (i + 1) + (j + 2), c11);
+            _mm_storeu_pd(C + bg * (i + 2) + (j), c20);
+            _mm_storeu_pd(C + bg * (i + 2) + (j + 2), c21);
+            _mm_storeu_pd(C + bg * (i + 3) + (j), c30);
+            _mm_storeu_pd(C + bg * (i + 3) + (j + 2), c31);
+        }
+    }
+
+    double c = 0;
+    int tmp_j = j;
+    for(;i < av; ++i) {
+        for(j = 0; j < bg; ++j) {
+            c = 0;
+            for(q = 0; q < ag; ++q) {
+                c += A[ag * i + q] * B[bg * q + j];
+            }
+            C[bg * i + j] = c;
+        }
+    }
+    for(i = 0; i < _av; ++i) {
+        for(j = tmp_j; j < bg; ++j) {
+            c = 0;
+            for(q = 0; q < ag; ++q) {
+                c += A[ag * i + q] * B[bg * q + j];
+            }
+            C[bg * i + j] = c;
+        }
+    }
+}
 
 
-//#pragma GCC push_options
-//#pragma GCC optimize ("-ffast-math")
-//#pragma GCC target("sse")
-//#pragma GCC target("avx2")
+void block_mult_sub(double* A, int av, int ag, double* B, int bg, double* C) {
+    int av_reminder = av % 4;
+    int bg_reminder = bg % 4;
+    int _av = av - av_reminder;
+    int _bg = bg - bg_reminder;
+    int i = 0, j = 0, q = 0;
+    __m128d c00, c01, c10, c11, c20, c21, c30, c31;
+    for(i = 0; i < _av; i += 4) {
+        for(j = 0; j < _bg; j+= 4) {
+            c00 = _mm_loadu_pd(C + bg * (i) + (j)); c01 = _mm_loadu_pd(C + bg * (i) + (j + 2));
+            c10 = _mm_loadu_pd(C + bg * (i + 1) + (j)); c11 = _mm_loadu_pd(C + bg * (i + 1) + (j + 2));
+            c20 = _mm_loadu_pd(C + bg * (i + 2) + (j)); c21 = _mm_loadu_pd(C + bg * (i + 2) + (j + 2));
+            c30 = _mm_loadu_pd(C + bg * (i + 3) + (j)); c31 = _mm_loadu_pd(C + bg * (i + 3) + (j + 2));
+            for(q = 0; q < ag; ++q) {
+                __m128d a0 = _mm_load1_pd(A + ag * (i) + q);
+                __m128d a1 = _mm_load1_pd(A + ag * (i + 1) + q);
+                __m128d a2 = _mm_load1_pd(A + ag * (i + 2) + q);
+                __m128d a3 = _mm_load1_pd(A + ag * (i + 3) + q);
+                __m128d b0 = _mm_loadu_pd(B + bg * q + (j));
+                __m128d b1 = _mm_loadu_pd(B + bg * q + (j + 2));
+                c00 = _mm_sub_pd(c00, _mm_mul_pd(a0, b0));
+                c01 = _mm_sub_pd(c01, _mm_mul_pd(a0, b1));
+                c10 = _mm_sub_pd(c10, _mm_mul_pd(a1, b0));
+                c11 = _mm_sub_pd(c11, _mm_mul_pd(a1, b1));
+                c20 = _mm_sub_pd(c20, _mm_mul_pd(a2, b0));
+                c21 = _mm_sub_pd(c21, _mm_mul_pd(a2, b1));
+                c30 = _mm_sub_pd(c30, _mm_mul_pd(a3, b0));
+                c31 = _mm_sub_pd(c31, _mm_mul_pd(a3, b1));
+            }
+            _mm_storeu_pd(C + bg * (i) + (j), c00);
+            _mm_storeu_pd(C + bg * (i) + (j + 2), c01);
+            _mm_storeu_pd(C + bg * (i + 1) + (j), c10);
+            _mm_storeu_pd(C + bg * (i + 1) + (j + 2), c11);
+            _mm_storeu_pd(C + bg * (i + 2) + (j), c20);
+            _mm_storeu_pd(C + bg * (i + 2) + (j + 2), c21);
+            _mm_storeu_pd(C + bg * (i + 3) + (j), c30);
+            _mm_storeu_pd(C + bg * (i + 3) + (j + 2), c31);
+        }
+    }
+    double c = 0;
+    int tmp_j = j;
+    for(;i < av; ++i) {
+        for(j = 0; j < bg; ++j) {
+            c = 0;
+            for(q = 0; q < ag; ++q) {
+                c += A[ag * i + q] * B[bg * q + j];
+            }
+            C[bg * i + j] -= c;
+        }
+    }
+    for(i = 0; i < _av; ++i) {
+        for(j = tmp_j; j < bg; ++j) {
+            c = 0;
+            for(q = 0; q < ag; ++q) {
+                c += A[ag * i + q] * B[bg * q + j];
+            }
+            C[bg * i + j] -= c;
+        }
+    }
+
+}
+
+void block_mult_add(double* A, int av, int ag, double* B, int bg, double* C) {
+    int av_reminder = av % 4;
+    int bg_reminder = bg % 4;
+    int _av = av - av_reminder;
+    int _bg = bg - bg_reminder;
+    int i = 0, j = 0, q = 0;
+    __m128d c00, c01, c10, c11, c20, c21, c30, c31;
+    for(i = 0; i < _av; i += 4) {
+        for(j = 0; j < _bg; j+= 4) {
+            c00 = _mm_loadu_pd(C + bg * (i) + (j)); c01 = _mm_loadu_pd(C + bg * (i) + (j + 2));
+            c10 = _mm_loadu_pd(C + bg * (i + 1) + (j)); c11 = _mm_loadu_pd(C + bg * (i + 1) + (j + 2));
+            c20 = _mm_loadu_pd(C + bg * (i + 2) + (j)); c21 = _mm_loadu_pd(C + bg * (i + 2) + (j + 2));
+            c30 = _mm_loadu_pd(C + bg * (i + 3) + (j)); c31 = _mm_loadu_pd(C + bg * (i + 3) + (j + 2));
+            for(q = 0; q < ag; ++q) {
+                __m128d a0 = _mm_load1_pd(A + ag * (i) + q);
+                __m128d a1 = _mm_load1_pd(A + ag * (i + 1) + q);
+                __m128d a2 = _mm_load1_pd(A + ag * (i + 2) + q);
+                __m128d a3 = _mm_load1_pd(A + ag * (i + 3) + q);
+                __m128d b0 = _mm_loadu_pd(B + bg * q + (j));
+                __m128d b1 = _mm_loadu_pd(B + bg * q + (j + 2));
+                c00 = _mm_add_pd(c00, _mm_mul_pd(a0, b0));
+                c01 = _mm_add_pd(c01, _mm_mul_pd(a0, b1));
+                c10 = _mm_add_pd(c10, _mm_mul_pd(a1, b0));
+                c11 = _mm_add_pd(c11, _mm_mul_pd(a1, b1));
+                c20 = _mm_add_pd(c20, _mm_mul_pd(a2, b0));
+                c21 = _mm_add_pd(c21, _mm_mul_pd(a2, b1));
+                c30 = _mm_add_pd(c30, _mm_mul_pd(a3, b0));
+                c31 = _mm_add_pd(c31, _mm_mul_pd(a3, b1));
+            }
+            _mm_storeu_pd(C + bg * (i) + (j), c00);
+            _mm_storeu_pd(C + bg * (i) + (j + 2), c01);
+            _mm_storeu_pd(C + bg * (i + 1) + (j), c10);
+            _mm_storeu_pd(C + bg * (i + 1) + (j + 2), c11);
+            _mm_storeu_pd(C + bg * (i + 2) + (j), c20);
+            _mm_storeu_pd(C + bg * (i + 2) + (j + 2), c21);
+            _mm_storeu_pd(C + bg * (i + 3) + (j), c30);
+            _mm_storeu_pd(C + bg * (i + 3) + (j + 2), c31);
+        }
+    }
+    double c = 0;
+    int tmp_j = j;
+    for(;i < av; ++i) {
+        for(j = 0; j < bg; ++j) {
+            c = 0;
+            for(q = 0; q < ag; ++q) {
+                c += A[ag * i + q] * B[bg * q + j];
+            }
+            C[bg * i + j] += c;
+        }
+    }
+    for(i = 0; i < _av; ++i) {
+        for(j = tmp_j; j < bg; ++j) {
+            c = 0;
+            for(q = 0; q < ag; ++q) {
+                c += A[ag * i + q] * B[bg * q + j];
+            }
+            C[bg * i + j] += c;
+        }
+    }
+
+}
+#endif
+
+#if 1
 void block_mult(double* A, int av, int ag, double* B, int bg, double* C) {
     int av_reminder = av % 3;
     int bg_reminder = bg % 3;
@@ -144,7 +330,6 @@ void block_mult_sub(double* A, int av, int ag, double* B, int bg, double* C) {
     }
 }
 
-
 void block_mult_add(double* A, int av, int ag, double* B, int bg, double* C) {
     int av_reminder = av % 3;
     int bg_reminder = bg % 3;
@@ -213,8 +398,8 @@ void block_mult_add(double* A, int av, int ag, double* B, int bg, double* C) {
         }
     }
 }
+#endif
 
-//#pragma GCC pop_options
 
 double norm_block(double* block, int m) {
     double max = 0;

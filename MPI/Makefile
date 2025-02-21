@@ -5,8 +5,10 @@ endif
 # mpirun -np 4 -x ASAN_OPTIONS=detect_leaks=0 ./a.out
 # mpirun -np 2 -x ASAN_OPTIONS=detect_leaks=0 xterm -e gdb --args ./a.out
 #/lib/x86_64-linux-gnu/mpich/include
+#/opt/impi-5.1.3.223/intel64/include
+#/usr/lib/x86_64-linux-gnu/openmpi/include 
 
-CXXFLAGS ?= -isystem /usr/lib/x86_64-linux-gnu/openmpi/include -O3 -mfpmath=sse -fstack-protector-all\
+CXXFLAGS ?= -isystem  /usr/lib/x86_64-linux-gnu/openmpi/include -O3 -fstack-protector-all\
 			-g -W -Wall -Wextra -Wunused -Wcast-align -Werror -pedantic -pedantic-errors -Wfloat-equal\
 			-Wpointer-arith -Wformat-security -Wmissing-format-attribute -Wformat=1 -Wwrite-strings\
 			-Wcast-align -Wno-long-long -Woverloaded-virtual -Wnon-virtual-dtor -Wcast-qual\

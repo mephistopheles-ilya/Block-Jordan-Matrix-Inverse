@@ -2,7 +2,6 @@
 #include <math.h>
 #include <limits>
 #include <string.h>
-#include <stdio.h>
 
 #include "matrix.h"
 

@@ -1,10 +1,11 @@
+#include "read_print_fill.hpp"
+
 #include <stdio.h>
 #include <algorithm>
 #include <cstring>
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "read_print_fill.hpp"
 
 double get_cpu_time() {
     struct rusage buf;
@@ -218,8 +219,8 @@ int print_matrix(double* matrix, int n, int m, int proc_num, int p, int r, doubl
                     r_num_elem_in_line = (block_in_line < restrict_k) ? m : restrict_l;
                     int shift = block_in_line * m * num_line_in_block + line_in_block * num_elem_in_line;
                     for(int q = 0; q < r_num_elem_in_line; ++q) {
-                        //printf(" %10.3e", *(buf + shift + q));
-                        printf(" %.15lf", *(buf + shift + q));
+                        printf(" %10.3e", *(buf + shift + q));
+                        //printf(" %.15lf", *(buf + shift + q));
                     }
                 }
                 printf("\n");

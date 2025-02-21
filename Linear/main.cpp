@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
         r1 = -1;
         r2 = -1;
     }
-    if (n <= -1 && (success1 == 0) && (success2 == 0)) {
+    if (n <= 11000 && (success1 == 0) && (success2 == 0)) {
         time1 = clock();
         r1 = calculate_discrepancy(matrix, inverse, n, m, tmp_block_m, tmp_line_n);
         r2 = calculate_discrepancy(inverse, matrix, n, m, tmp_block_m, tmp_line_n);
