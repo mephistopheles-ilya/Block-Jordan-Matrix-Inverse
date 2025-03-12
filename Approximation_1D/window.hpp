@@ -12,7 +12,8 @@ class MainWindow: public QMainWindow {
         
         double (*f)(double);
 
-        double a = 0, b = 0;
+        const double a = 0, b = 0;
+        double min_x = 0, max_x = 0;
         int n = 0, k = 0;
         int s = 0, p = 0;
 

@@ -3,10 +3,14 @@
 
 #include <stdio.h>
 
+#include <fenv.h>
 
 #include "window.hpp"
 
 int main(int argc, char *argv[]) {
+
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
+
     QApplication app(argc, argv);
 
     double a = 0, b = 0;
@@ -16,7 +20,7 @@ int main(int argc, char *argv[]) {
         QMessageBox::critical(nullptr, "Error", "Wrong amoun of arguments");
         return 1;
     }
-    if (a > b || k < 1 || k > 7 || n < 5) {
+    if (a > b || k < 0 || k > 6 || n < 5) {
         QMessageBox::critical(nullptr, "Error", "Wrong arguments");
         return 2;
     }

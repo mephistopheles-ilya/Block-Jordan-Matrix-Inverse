@@ -68,6 +68,9 @@ void cube_approximation(double* points_x, double* f_x, double* d, double* c, int
 double cube_calc(double* points_x, double* c, double a, double b, int n, double x) {
     int i = (x - a) * (n - 1)/ (b - a);
     double x_i = 0;
+    if (i > n - 1) {
+        i = n - 1;
+    }
     x_i = points_x[i];
     if (x <= points_x[2]) {
         x_i = points_x[2];

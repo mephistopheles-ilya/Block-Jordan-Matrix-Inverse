@@ -11,6 +11,52 @@
 
 #define L2G(X,Y) (l2g ((X), (Y), min_y, max_y))
 
+
+void call_cube_approximation(double* points_x, double* f_x, double* d, double* c, int n, int k, int p) {
+    static int local_n = n;
+    static int local_k = k;
+    static int local_p = p;
+    static int first = -1;
+
+    if (first == -1) {
+        cube_approximation(points_x, f_x, d, c, n);
+        first = 1;
+        return;
+    }
+    if (local_n == n && local_k == k && local_p == p) {
+        return;
+    }
+
+    cube_approximation(points_x, f_x, d, c, n);
+    local_n = n;
+    local_k = k;
+    local_p = p;
+}
+
+
+void call_Newton_approximation(double* points_x, double* f_x, double* newton_coeff, int n, int k, int p) {
+    static int local_n = n;
+    static int local_k = k;
+    static int local_p = p;
+    static int first = -1;
+
+    if (first == -1) {
+        Newton_approximation(points_x, f_x, newton_coeff, n);
+        first = 1;
+        return;
+    }
+    if (local_n == n && local_k == k && local_p == p) {
+        return;
+    }
+
+    Newton_approximation(points_x, f_x, newton_coeff, n);
+    local_n = n;
+    local_k = k;
+    local_p = p;
+
+}
+
+
 inline double f0(double ) {
     return 1;
 }
@@ -50,13 +96,15 @@ MainWindow::MainWindow(double a, double b, int n, int k, QWidget* parent):
         add_error();
 
         allocated_n = n;
+        min_x = a;
+        max_x = b;
 
         plot_number = 1;
         is_plot_func = true;
         is_plot_apr1 = true;
 
         if (n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
 
         setWindowTitle("Function Approximation");
@@ -91,32 +139,32 @@ void MainWindow::updateMenuTitle() {
     QString title;
     switch (k) {
         case 0: 
-            title = QString("k = 0 f(x) = 1, n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 0 f(x) = 1, n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
         case 1: 
-            title = QString("k = 1 f(x) = x, n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 1 f(x) = x, n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
         case 2: 
-            title = QString("k = 2 f(x) = x^2, n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 2 f(x) = x^2, n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
         case 3: 
-            title = QString("k = 3 f(x) = x^3, n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 3 f(x) = x^3, n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
         case 4: 
-            title = QString("k = 4 f(x) = x^4, n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 4 f(x) = x^4, n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
         case 5: 
-            title = QString("k = 5 f(x) = exp(x), n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 5 f(x) = exp(x), n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
         case 6: 
-            title = QString("k = 6 f(x) = 1/(25*x^2 + 1), n = %1, s = %2, [a, b] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
-                .arg(n).arg(s).arg(a).arg(b).arg(F_abs_max).arg(p);
+            title = QString("k = 6 f(x) = 1/(25*x^2 + 1), n = %1, s = %2, [min_x, max_x] = [%3, %4], max{|F_min|, |F_max|} = %5, p = %6")
+                .arg(n).arg(s).arg(min_x).arg(max_x).arg(F_abs_max).arg(p);
             break;
     }
     functionsMenu->setTitle(title);
@@ -179,6 +227,7 @@ void MainWindow::add_error() {
 }
 
 void MainWindow::delete_allocate() {
+    allocated_n = n;
     delete[] points_x;
     delete[] f_x;
     delete[] d;
@@ -199,7 +248,7 @@ void MainWindow::fill_points_array() {
 
 QPointF MainWindow::l2g (double x_loc, double y_loc, double y_min, double y_max) {
     int h = menuBar()->height();
-    double x_gl = (x_loc - a) / (b - a) * width ();
+    double x_gl = (x_loc - min_x) / (max_x - min_x) * width ();
     double y_gl = (y_max - y_loc) / (y_max - y_min) * (height() - h) + h;
     return QPointF (x_gl, y_gl);
 }
@@ -220,10 +269,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         add_error();
 
         if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
         if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+            call_cube_approximation(points_x, f_x, d, c, n, k, p);
         }
         update();
     } else if (event->key() == Qt::Key_4) {
@@ -235,10 +284,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         fill_func_array();
         add_error();
         if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
         if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+            call_cube_approximation(points_x, f_x, d, c, n, k, p);
         }
 
         update();
@@ -252,54 +301,37 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         fill_func_array();
         add_error();
         if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
         if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+            call_cube_approximation(points_x, f_x, d, c, n, k, p);
         }
 
         update();
     } else if (event->key() == Qt::Key_2) {
         ++s;
-        if (std::fabs(a) >= std::numeric_limits<double>::max()/2 
-                || std::fabs(b) >= std::numeric_limits<double>::max()/2) {
+        double tmp_a = min_x, tmp_b = max_x;
+        double tmp = (3 * min_x + max_x) / 4;
+        max_x = (3 * max_x + min_x) / 4;
+        min_x = tmp;
+        if (max_x - min_x < 1e-6) {
+            min_x = tmp_a;
+            max_x = tmp_b;
             --s;
             return;
-        }
-        double tmp = (3 * a - b) / 2;
-        b = (3 * b - a) / 2;
-        a = tmp;
-        fill_points_array();
-        fill_func_array();
-        add_error();
-        if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
-        }
-        if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
         }
 
         update();
     } else if (event->key() == Qt::Key_3) {
-        double tmp_a = a, tmp_b = b;
+        if (s == 0) return;
         --s;
-        double tmp = (3 * a + b) / 4;
-        b = (3 * b + a) / 4;
-        a = tmp;
-        if (a >= b) {
-            a = tmp_a;
-            b = tmp_b;
-            ++s;
-            return;
-        }
-        fill_points_array();
-        fill_func_array();
-        add_error();
-        if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
-        }
-        if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+        if (s == 0) {
+            min_x = a;
+            max_x = b;
+        } else {
+            double tmp = (3 * min_x - max_x) / 2;
+            max_x = (3 * max_x - min_x) / 2;
+            min_x = tmp;
         }
 
         update();
@@ -307,10 +339,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         ++p;
         add_error();
         if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
         if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+            call_cube_approximation(points_x, f_x, d, c, n, k, p);
         }
 
         update();
@@ -318,10 +350,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         --p;
         add_error();
         if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
         if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+            call_cube_approximation(points_x, f_x, d, c, n, k, p);
         }
 
         update();
@@ -330,7 +362,6 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         if (plot_number > 4) {
             plot_number = plot_number % 4;
         }
-        printf("%d\n", plot_number);
         if (plot_number == 1 || plot_number == 2 || plot_number == 3) {
             is_plot_func = true;
         } else {
@@ -351,11 +382,12 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         } else {
             is_plot_resid = false;
         }
+
         if ((is_plot_apr1 == true || is_plot_resid == true) && n <= 50) {
-            Newton_approximation(points_x, f_x, newton_coeff, n);
+            call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
         }
         if (is_plot_apr2 == true || is_plot_resid == true) {
-            cube_approximation(points_x, f_x, d, c, n);
+            call_cube_approximation(points_x, f_x, d, c, n, k, p);
         }
         update();
     }
@@ -363,18 +395,18 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 
 void MainWindow::paintEvent(QPaintEvent* ) {
     QPainter painter (this);
-    QPen pen_blue(Qt::blue, 2, Qt::SolidLine); 
-    QPen pen_green(Qt::green, 2, Qt::SolidLine); 
-    QPen pen_red(Qt::red, 2, Qt::SolidLine); 
-    QPen pen_black(Qt::black, 2, Qt::SolidLine);
+    QPen pen_blue(Qt::blue, 0, Qt::SolidLine); 
+    QPen pen_green(Qt::green, 0, Qt::SolidLine); 
+    QPen pen_red(Qt::red, 0, Qt::SolidLine); 
+    QPen pen_black(Qt::black, 0, Qt::SolidLine);
 
 
     double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-    double delta_y = 0, delta_x = (b - a)/width();
+    double delta_y = 0, delta_x = (max_x - min_x)/width();
     double min_y = 0, max_y = 0;
 
     if (is_plot_func == true) {
-        for (x1 = a; x1 - b < 1.e-6; x1 += delta_x) {
+        for (x1 = min_x; x1 - max_x < 1.e-6; x1 += delta_x) {
             y1 = f(x1);
             if (y1 < min_y)
                 min_y = y1;
@@ -383,7 +415,7 @@ void MainWindow::paintEvent(QPaintEvent* ) {
         }
     }
     if (is_plot_apr1 == true && n <= 50) {
-        for (x1 = a; x1 - b < 1.e-6; x1 += delta_x) {
+        for (x1 = min_x; x1 - max_x < 1.e-6; x1 += delta_x) {
             y1 = Newton_calck(newton_coeff, points_x, n, x1);
             if (y1 < min_y)
                 min_y = y1;
@@ -392,7 +424,7 @@ void MainWindow::paintEvent(QPaintEvent* ) {
         }
     }
     if (is_plot_apr2 == true) {
-        for (x1 = a; x1 - b < 1.e-6; x1 += delta_x) {
+        for (x1 = min_x; x1 - max_x < 1.e-6; x1 += delta_x) {
             y1 = cube_calc(points_x, c, a, b, n, x1);
             if (y1 < min_y)
                 min_y = y1;
@@ -401,7 +433,7 @@ void MainWindow::paintEvent(QPaintEvent* ) {
         }
     }
     if (is_plot_resid == true) {
-        for (x1 = a; x1 - b < 1.e-6; x1 += delta_x) {
+        for (x1 = min_x; x1 - max_x < 1.e-6; x1 += delta_x) {
             y1 = std::fabs(f(x1) - cube_calc(points_x, c, a, b, n, x1));
             if (y1 < min_y)
                 min_y = y1;
@@ -409,7 +441,7 @@ void MainWindow::paintEvent(QPaintEvent* ) {
                 max_y = y1;
         }
         if (n <= 50) {
-            for (x1 = a; x1 - b < 1.e-6; x1 += delta_x) {
+            for (x1 = min_x; x1 - max_x < 1.e-6; x1 += delta_x) {
                 y1 = std::fabs(f(x1) - Newton_calck(newton_coeff, points_x, n, x1));
                 if (y1 < min_y)
                     min_y = y1;
@@ -420,86 +452,125 @@ void MainWindow::paintEvent(QPaintEvent* ) {
     }
 
     F_abs_max = std::max(std::fabs(min_y), std::fabs(max_y));
+    printf("max{|F_max|, |F_min|} = %e\n", F_abs_max);
+
+    if (max_y - min_y <= 0) {
+        max_y += 0.5;
+    }
 
     delta_y = 0.01 * (max_y - min_y);
     min_y -= delta_y;
     max_y += delta_y;
 
     painter.setPen(pen_black);
-    painter.drawLine(L2G(a, 0), L2G(b, 0));
+    painter.drawLine(L2G(min_x, 0), L2G(max_x, 0));
     painter.drawLine(L2G(0, min_y), L2G(0, max_y));
 
     if (is_plot_func == true) {
         painter.setPen(pen_blue);
-        x1 = a;
+        x1 = min_x;
         y1 = f(x1);
-        for (x2 = x1 + delta_x; x2 - b < 1.e-6; x2 += delta_x) {
+        for (x2 = x1 + delta_x; x2 - max_x < 1.e-6; x2 += delta_x) {
             y2 = f(x2);
             painter.drawLine(L2G(x1, y1), L2G(x2, y2));
             x1 = x2;
             y1 = y2;
         }
-        x2 = b;
+        x2 = max_x;
         y2 = f(x2);
         painter.drawLine(L2G(x1, y1), L2G(x2, y2));
     }
 
     if (is_plot_apr1 == true && n <= 50) {
         painter.setPen(pen_green);
-        x1 = a;
+        x1 = min_x;
         y1 = Newton_calck(newton_coeff, points_x, n, x1);
-        for (x2 = x1 + delta_x; x2 - b < 1.e-6; x2 += delta_x) {
+        for (x2 = x1 + delta_x; x2 - max_x < 1.e-6; x2 += delta_x) {
             y2 = Newton_calck(newton_coeff, points_x, n, x1);
             painter.drawLine(L2G(x1, y1), L2G(x2, y2));
             x1 = x2;
             y1 = y2;
         }
-        x2 = b;
+        x2 = max_x;
         y2 = Newton_calck(newton_coeff, points_x, n, x1);
         painter.drawLine(L2G(x1, y1), L2G(x2, y2));
     }
     if (is_plot_apr2 == true) {
         painter.setPen(pen_red);
-        x1 = a;
+        x1 = min_x;
         y1 = cube_calc(points_x, c, a, b, n, x1);
-        for (x2 = x1 + delta_x; x2 - b < 1.e-6; x2 += delta_x) {
+        for (x2 = x1 + delta_x; x2 - max_x < 1.e-6; x2 += delta_x) {
             y2 = cube_calc(points_x, c, a, b, n, x1);
             painter.drawLine(L2G(x1, y1), L2G(x2, y2));
             x1 = x2;
             y1 = y2;
         }
-        x2 = b;
+        x2 = max_x;
         y2 = cube_calc(points_x, c, a, b, n, x1);
         painter.drawLine(L2G(x1, y1), L2G(x2, y2));
     }
     if (is_plot_resid == true) {
         painter.setPen(pen_red);
-        x1 = a;
+        x1 = min_x;
         y1 = std::fabs(f(x1) - cube_calc(points_x, c, a, b, n, x1));
-        for (x2 = x1 + delta_x; x2 - b < 1.e-6; x2 += delta_x) {
+        for (x2 = x1 + delta_x; x2 - max_x < 1.e-6; x2 += delta_x) {
             y2 = std::fabs(f(x1) - cube_calc(points_x, c, a, b, n, x1));
             painter.drawLine(L2G(x1, y1), L2G(x2, y2));
             x1 = x2;
             y1 = y2;
         }
-        x2 = b;
+        x2 = max_x;
         y2 = std::fabs(f(x1) - cube_calc(points_x, c, a, b, n, x1));
         painter.drawLine(L2G(x1, y1), L2G(x2, y2));
         if (n <= 50) {
             painter.setPen(pen_green);
-            x1 = a;
+            x1 = min_x;
             y1 = std::fabs(f(x1) - Newton_calck(newton_coeff, points_x, n, x1));
-            for (x2 = x1 + delta_x; x2 - b < 1.e-6; x2 += delta_x) {
+            for (x2 = x1 + delta_x; x2 - max_x < 1.e-6; x2 += delta_x) {
                 y2 = std::fabs(f(x1) - Newton_calck(newton_coeff, points_x, n, x1));
                 painter.drawLine(L2G(x1, y1), L2G(x2, y2));
                 x1 = x2;
                 y1 = y2;
             }
-            x2 = b;
+            x2 = max_x;
             y2 = std::fabs(f(x1) - Newton_calck(newton_coeff, points_x, n, x1));
             painter.drawLine(L2G(x1, y1), L2G(x2, y2));
         }
     }
+
+    int x = 0;
+    int y = menuBar()->height() + 5;
+    int line_height = 20;
+
+    auto f = painter.font();
+    f.setPointSize(8);
+    painter.setFont(f);
+
+    painter.setPen(pen_black);
+    painter.drawEllipse(L2G(0, 0), 3, 3);
+
+    painter.setPen(pen_green);
+    painter.drawEllipse(x, y, 10, 10);
+    painter.drawText(x + 15, y + 10, "method1");
+
+    painter.setPen(pen_red);
+    painter.drawEllipse(x, y + line_height, 10, 10);
+    painter.drawText(x + 15, y + line_height + 10, "method2");
+
+    painter.setPen(pen_black);
+    if (plot_number == 1) {
+        painter.drawText(x, y + 2 * line_height + 10, "now: method1");
+    }
+    if (plot_number == 2) {
+        painter.drawText(x, y + 2 * line_height + 10, "now: method2");
+    }
+    if (plot_number == 3) {
+        painter.drawText(x, y + 2 * line_height + 10, "now: method1 and method2");
+    }
+    if (plot_number == 4) {
+        painter.drawText(x, y + 2 * line_height + 10, "now: errors");
+    }
+
     updateMenuTitle();
 }
 
@@ -508,11 +579,12 @@ void MainWindow::set_func_number(int new_k) {
     k = new_k;
     update_function();
     fill_func_array();
+    add_error();
     if (is_plot_apr1 == true || (is_plot_resid == true && n <= 50)) {
-        Newton_approximation(points_x, f_x, newton_coeff, n);
+        call_Newton_approximation(points_x, f_x, newton_coeff, n, k, p);
     }
     if (is_plot_apr2 == true || is_plot_resid == true) {
-        cube_approximation(points_x, f_x, d, c, n);
+        call_cube_approximation(points_x, f_x, d, c, n, k, p);
     }
     update();
 }
