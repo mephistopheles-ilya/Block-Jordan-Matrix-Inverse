@@ -8,6 +8,6 @@ QMAKE_CXXFLAGS += -O3 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wu
 
 QMAKE_LFLAGS += -fsanitize=leak,undefined,address
 
-HEADERS       = window.hpp
-SOURCES       = main.cpp 
+HEADERS       = window.hpp approximations.hpp
+SOURCES       = main.cpp window.cpp approximations.cpp
 TARGET        = a.out
