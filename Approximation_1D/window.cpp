@@ -403,7 +403,12 @@ void MainWindow::paintEvent(QPaintEvent* ) {
 
     double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
     double delta_y = 0, delta_x = (max_x - min_x)/width();
-    double min_y = 0, max_y = 0;
+    double min_y = f(min_x), max_y = 0;
+
+    if (is_plot_resid == true) {
+        min_y = 0;
+        max_y = 0;
+    }
 
     if (is_plot_func == true) {
         for (x1 = min_x; x1 - max_x < 1.e-6; x1 += delta_x) {
