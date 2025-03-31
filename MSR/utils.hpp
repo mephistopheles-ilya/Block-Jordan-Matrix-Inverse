@@ -4,9 +4,61 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <vector>
+#include <tuple>
+#include <utility>
 
-template <typename T = int>
-void reduce_sum(int p, T* a = nullptr, int n = 0) {
+
+template <typename... Args>
+class memmory_manager {
+
+private:
+
+    std::tuple<Args*...> pointers;
+    int nullptr_counter = 0;
+
+    struct expand_t {
+        expand_t(int...) {}
+    };
+
+    template<typename T>
+    void is_nullptr(T* ptr) {
+        if (ptr == nullptr) ++nullptr_counter;
+    }
+
+    template<size_t... N>
+    void deleter(std::integer_sequence<size_t, N...>) {
+        expand_t((delete[] std::get<N>(pointers), 0)...);
+        expand_t((std::get<N>(pointers) = nullptr, 0)...);
+    }
+
+    template<size_t... N>
+    void count_nullptr(std::integer_sequence<size_t, N...>) {
+        expand_t((is_nullptr(std::get<N>(pointers)), 0)...);
+    }
+
+
+public:
+
+    memmory_manager(Args*... args): pointers(args...) {}
+
+    bool check_nullptr() {
+        count_nullptr(std::make_index_sequence<sizeof...(Args)>{});
+        if (nullptr_counter != 0) return true;
+        return false;
+    }
+
+    ~memmory_manager() {
+        deleter(std::make_index_sequence<sizeof...(Args)>{});
+    }
+};
+
+        
+        
+            
+
+
+template <typename T>
+void reduce_sum(int p, T* a, int n) {
     static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
     static pthread_cond_t c_in = PTHREAD_COND_INITIALIZER;
     static pthread_cond_t c_out = PTHREAD_COND_INITIALIZER;
@@ -48,6 +100,24 @@ void reduce_sum(int p, T* a = nullptr, int n = 0) {
     pthread_mutex_unlock(&m);
 }
 
+inline void barrier(int p) {
+
+    struct closure_barrier {
+        pthread_barrier_t barrier;
+        closure_barrier(int p) {
+            pthread_barrier_init(&barrier, nullptr, p);
+        }
+        ~closure_barrier() {
+            pthread_barrier_destroy(&barrier);
+        }
+    };
+
+    static closure_barrier bar(p);
+
+    pthread_barrier_wait(&bar.barrier);
+
+}
+
 inline double reduce_sum_double_det(int p, int k, double s) {
 
     struct alignas(128) alignad_double {
@@ -59,7 +129,7 @@ inline double reduce_sum_double_det(int p, int k, double s) {
 
     double sum = 0;
     results[k].num = s;
-    reduce_sum(p);
+    barrier(p);
 
     for(int l = 0; l < p; ++l) {
         sum += results[l].num;

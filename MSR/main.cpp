@@ -2,8 +2,12 @@
 #include <new>
 
 #include "thread.hpp"
+#include "fill_msr.hpp"
+#include "utils.hpp"
 
 #include <fenv.h>
+
+
 
 
 int main(int argc, char* argv[]) {
@@ -25,17 +29,28 @@ int main(int argc, char* argv[]) {
         || sscanf(argv[7], "%d", &k) != 1 || sscanf(argv[8], "%lf", &eps) != 1
         || sscanf(argv[9], "%d", &mi) != 1 || sscanf(argv[10], "%d", &p) != 1) {
 
-        printf("Usage %s a b c d nx ny k eps mi p", argv[0]);
+        printf("Usage %s a b c d nx ny k eps mi p\n", argv[0]);
         return 1;
     }
 
-    if (b >= a || d >= c || nx <= 2 || ny <= 2 || k < 0 || k > 7 || eps < 0 || mi < 0 || p <= 0) {
+    if (b <= a || d <= c || nx <= 2 || ny <= 2 || k < 0 || k > 7 || eps < 0 || mi < 0 || p <= 0) {
         printf("Wrong parametrs of commad line\n");
         return 2;
     }
 
+    int len_msr = get_len_msr(nx, ny); // maby + 1
+    int len_diag = (nx + 1) * (ny + 1);
+    double* A = new (std::nothrow) double[len_msr];
+    int* I  = new (std::nothrow) int[len_msr]; // maby size_t
+    double* x = new (std::nothrow) double[len_diag];
+    double* r = new (std::nothrow) double[len_diag];
+    double* u = new (std::nothrow) double[len_diag];
+    double* v = new (std::nothrow) double[len_diag];
     Arg* args = new (std::nothrow) Arg[p];
-    if (args == nullptr) {
+
+    memmory_manager<double, int, double, double, double, double, Arg> mm(A, I, x, r, u, v, args);
+
+    if (mm.check_nullptr() == true) {
         printf("Not enough memmory\n");
         return 3;
     }
@@ -60,7 +75,6 @@ int main(int argc, char* argv[]) {
             for(int i = 1; i < thr_num; ++i) {
                 pthread_join(args[thr_num].tid, nullptr);
             }
-            delete[] args;
             return 4;
         }
     }
@@ -81,11 +95,8 @@ int main(int argc, char* argv[]) {
     double t2 = args[0].t2;
     int it = args[0].it;
     
-    printf ("%s : Task = %d R1 = %e R2 = %e R3 = %e R4 = %e T1 = %.2f T2 = %.2f\
-            It = %d E = %e K = %d Nx = %d Ny = %d P = %d\n",
+    printf ("%s : Task = %d R1 = %e R2 = %e R3 = %e R4 = %e T1 = %.2f T2 = %.2f \n It = %d E = %e K = %d Nx = %d Ny = %d P = %d\n",
             argv[0], task, r1, r2, r3, r4, t1, t2, it, eps, k, nx, ny, p);
-
-    delete[] args;
 
     return 0;
 }
