@@ -118,7 +118,7 @@ inline void barrier(int p) {
 
 }
 
-inline double reduce_sum_double_det(int p, int k, double s) {
+inline void reduce_sum_double_det(int p, int k, double& s) {
 
     struct alignas(128) alignad_double {
         double num = -1.;
@@ -135,7 +135,7 @@ inline double reduce_sum_double_det(int p, int k, double s) {
         sum += results[l].num;
     }
 
-    return sum;
+    s = sum;
 }
 
 inline double get_cpu_time() {

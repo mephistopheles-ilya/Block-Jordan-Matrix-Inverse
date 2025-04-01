@@ -17,8 +17,17 @@ struct Arg {
     double t1 = -1., t2 = -1.;
     int it = -1;
 
+    double* A = nullptr;
+    double* B = nullptr;
+    int* I = nullptr;
+    double* x = nullptr;
+    double* r = nullptr;
+    double* u =  nullptr;
+    double* v = nullptr;
+
 };
 
 void* thread_func(void* arg);
+double (*get_funk(int num))(double, double);
 
 

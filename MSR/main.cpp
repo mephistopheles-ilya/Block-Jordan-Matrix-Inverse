@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
     int len_msr = get_len_msr(nx, ny); // maby + 1
     int len_diag = (nx + 1) * (ny + 1);
     double* A = new (std::nothrow) double[len_msr];
+    double* B = new (std::nothrow) double[len_diag];
     int* I  = new (std::nothrow) int[len_msr]; // maby size_t
     double* x = new (std::nothrow) double[len_diag];
     double* r = new (std::nothrow) double[len_diag];
@@ -48,7 +49,7 @@ int main(int argc, char* argv[]) {
     double* v = new (std::nothrow) double[len_diag];
     Arg* args = new (std::nothrow) Arg[p];
 
-    memmory_manager<double, int, double, double, double, double, Arg> mm(A, I, x, r, u, v, args);
+    memmory_manager<double, double,  int, double, double, double, double, Arg> mm(A, B, I, x, r, u, v, args);
 
     if (mm.check_nullptr() == true) {
         printf("Not enough memmory\n");
@@ -67,6 +68,13 @@ int main(int argc, char* argv[]) {
         args[thr_num].mi = mi;
         args[thr_num].p = p;
         args[thr_num].thr_num = thr_num;
+        args[thr_num].A = A;
+        args[thr_num].B = B;
+        args[thr_num].I = I;
+        args[thr_num].x = x;
+        args[thr_num].r = r;
+        args[thr_num].u = u;
+        args[thr_num].v = v;
     }
 
     for(int thr_num = 1; thr_num < p; ++thr_num) {
