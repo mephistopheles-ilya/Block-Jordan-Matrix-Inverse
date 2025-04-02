@@ -6,6 +6,9 @@
 #include <vector>
 #include <tuple>
 #include <utility>
+#include <algorithm>
+#include <type_traits>
+#include <cstring>
 
 
 template <typename... Args>
@@ -51,6 +54,36 @@ public:
         deleter(std::make_index_sequence<sizeof...(Args)>{});
     }
 };
+
+template <typename... Args>
+class fill_with_zeros {
+
+private :
+
+    std::tuple<Args*...> pointers;
+
+    template <size_t... Is, typename... Nums>
+    void apply_memset_impl(std::index_sequence<Is...>, Nums... nums) {
+        expand_t((memset(std::get<Is>(pointers), 0, nums * 
+                        sizeof(std::remove_pointer_t< std::remove_reference_t< decltype(std::get<Is>(pointers)) > >)), 0)...);
+    }
+
+
+public: 
+
+    fill_with_zeros(Args*... args): pointers(args...) {}
+
+    struct expand_t {
+        expand_t(int...) {}
+    };
+
+    template <typename... Nums>
+    void apply_memset(Nums... nums) {
+        apply_memset_impl(std::make_index_sequence<sizeof...(Nums)>{}, nums...);
+    }
+};
+
+
 
         
         
@@ -99,6 +132,50 @@ void reduce_sum(int p, T* a, int n) {
     }
     pthread_mutex_unlock(&m);
 }
+
+template <typename T>
+void reduce_max(int p, T* a, int n) {
+    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+    static pthread_cond_t c_in = PTHREAD_COND_INITIALIZER;
+    static pthread_cond_t c_out = PTHREAD_COND_INITIALIZER;
+    static int t_in = 0;
+    static int t_out = 0;
+    static T* r = nullptr;
+    int i;
+    if(p <= 1) return;
+    pthread_mutex_lock(&m);
+    if(r == nullptr) {
+        r = a;
+    } else {
+        for(i = 0; i < n; ++i) r[i] = std::max(r[i], a[i]);
+    }
+    ++t_in;
+    if(t_in >= p) {
+        t_out = 0;
+        pthread_cond_broadcast(&c_in);
+    } else {
+        while(t_in < p) {
+            pthread_cond_wait(&c_in, &m);
+        }
+    }
+    if(r != a) {
+        for(i = 0; i < n; ++i) {
+            a[i] = r[i];
+        }
+    }
+    ++t_out;
+    if(t_out >= p) {
+        t_in = 0;
+        r = nullptr;
+        pthread_cond_broadcast(&c_out);
+    } else {
+        while (t_out < p) {
+            pthread_cond_wait(&c_out, &m);
+        }
+    }
+    pthread_mutex_unlock(&m);
+}
+
 
 inline void barrier(int p) {
 

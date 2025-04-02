@@ -3,15 +3,20 @@
 #include "thread.hpp"
 #include "utils.hpp"
 #include "fill_msr.hpp"
+#include "solve.hpp"
+#include "residuals.hpp"
 
 void* thread_func(void* argument ) {
     Arg* arg = (Arg *)argument;
+    const int maxsteps = 100;
     double a = arg->a;
     double b = arg->b;
     double c = arg->c;
     double d = arg->d;
+    int maxit = arg->mi;
     int nx = arg->nx;
     int ny = arg->ny;
+    double eps = arg->eps;
     int p = arg->p;
     int thr_num = arg->thr_num;
     int func_num = arg->k;
@@ -24,10 +29,12 @@ void* thread_func(void* argument ) {
     double* v = arg->v;
     double (*f)(double, double) = get_funk(func_num);
     double t1 = -1, t2 = -1, r1 = -1, r2 = -1, r3 = -1, r4 = -1;
+    int it = 0;
 
     double hx = (b - a) / nx;
     double hy = (c - d) / ny;
 
+    int len_diag = (nx + 1) * (ny + 1);
     if (thr_num == 0) {
         fill_A(nx, ny, hx, hy, I, A, p, thr_num); 
     }
@@ -38,20 +45,26 @@ void* thread_func(void* argument ) {
 
     barrier(p);
     t1 = get_full_time();
-
-    t1 = get_full_time() - t1;
+    it = min_residual_msr_matrix_full(len_diag, A, I, B, x, r, u, v, eps, maxit, maxsteps, p, thr_num); 
     barrier(p);
+    t1 = get_full_time() - t1;
 
+    barrier(p);
     t2 = get_full_time();
-    
+    r1 = calc_r1(x, a, c, hx, hy, nx, ny, p, thr_num, f);
+    r2 = calc_r2(x, a, c, hx, hy, nx, ny, p, thr_num, f);
+    r3 = calc_r3(x, a, c, hx, hy, nx, ny, p, thr_num, f);
+    r4 = calc_r4(x, a, c, hx, hy, nx, ny, p, thr_num, f);
+    barrier(p);
     t2 = get_full_time() - t2;
 
     arg->t1 = t1;
-    arg->t2= t2;
+    arg->t2 = t2;
     arg->r1 = r1;
     arg->r2 = r2;
     arg->r3 = r3;
     arg->r4 = r4;
+    arg->it = it;
 
     return nullptr;
 };

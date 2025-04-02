@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
         printf("Not enough memmory\n");
         return 3;
     }
+    fill_with_zeros<double, double, int, double, double, double, double> fwz(A, B, I, x, r, u, v);
+    fwz.apply_memset(len_msr, len_diag, len_msr, len_diag, len_diag, len_diag, len_diag);
 
     for(int thr_num = 0; thr_num < p; ++thr_num) {
         args[thr_num].a = a;
