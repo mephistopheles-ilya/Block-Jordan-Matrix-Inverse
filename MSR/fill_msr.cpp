@@ -27,7 +27,7 @@ int get_off_diag(int nx, int ny, int i, int j, int* I_ij) {
     if (i > 0 && j > 0) { Fa(i -1 , j - 1); }
     if (i > 0) { Fa(i - 1, j); }
     if (j < ny) { Fa(i, j + 1); }
-    if (i < nx && i < ny) { Fa(i + 1, j + 1); }
+    if (i < nx && j < ny) { Fa(i + 1, j + 1); }
     return m;
 }
 
@@ -75,56 +75,65 @@ void fill_I(int nx, int ny, int* I) {
 void fill_A_ij(int nx, int ny, double hx, double hy, int i,int j, double* A_diag, double* A_offdiag) {
     double s = hx * hy;
     int l = 0;
-    if (i > 0 && i < nx && j < 0 && j < ny) {
+    if (i > 0 && i < nx && j > 0 && j < ny) {
         A_diag[0] = 6 * s / 12.;
         for(l = 0; l < 6; ++l) {
             A_offdiag[l] = s / 12.;
         }
+        return;
     } else if (j == 0 && i > 0 && i < nx) {
         A_diag[0] = 3 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 1 * s / 24.;
         A_offdiag[2] = 2 * s / 24.;
         A_offdiag[3] = 2 * s / 24.;
+        return;
     } else if (j == ny && i > 0 && i < nx) {
         A_diag[0] = 3 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 2 * s / 24.;
         A_offdiag[2] = 2 * s / 24.;
         A_offdiag[3] = 1 * s / 24.;
+        return;
     } else if (i == 0 && j > 0 && j < ny) {
         A_diag[0] = 3 * s / 12.;
         A_offdiag[0] = 2 * s / 24.;
         A_offdiag[1] = 1 * s / 24.;
         A_offdiag[2] = 1 * s / 24.;
         A_offdiag[3] = 2 * s / 24.;
+        return;
     } else if (i == nx && j > 0 && j < ny) {
         A_diag[0] = 3 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 2 * s / 24.;
         A_offdiag[2] = 2 * s / 24.;
         A_offdiag[3] = 1 * s / 24.;
+        return;
     } else if (i == 0 && j == 0) {
         A_diag[0] = 2 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 1 * s / 24.;
-        A_offdiag[1] = 2 * s / 24.;
+        A_offdiag[2] = 2 * s / 24.;
+        return;
     } else if (i == nx && j == ny) {
         A_diag[0] = 2 * s / 24.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 2 * s / 24.;
-        A_offdiag[1] = 1 * s / 24.;
+        A_offdiag[2] = 1 * s / 24.;
+        return;
     } else if (i == 0 && j == ny) {
         A_diag[0] = 1 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 1 * s / 24.;
+        return;
     } else if (i == nx && j == 0) {
         A_diag[0] = 1 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 1 * s / 24.;
+        return;
     }
 
-    abort();
+    make_fpe();
 }
 
 void fill_A(int nx, int ny, double hx, double hy, int* I, double* A, int p, int k) {
@@ -148,7 +157,7 @@ void fill_A(int nx, int ny, double hx, double hy, int* I, double* A, int p, int 
 
 double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, int j, double (*f)(double, double)) {
     double w = hx * hy / 192;
-    if (i > 0 && i < nx && j > 0 && i > ny) {
+    if (i > 0 && i < nx && j > 0 && j < ny) {
         return w * (
                 36 * Fb(i, j)
                 + 20 * (
@@ -185,7 +194,7 @@ double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, i
                 + 2 * (Fb(i, j - 1) + Fb(i - 1, j - 1))
                 );
     }
-    if (i == 0 && j > 0 && i < ny) {
+    if (i == 0 && j > 0 && j < ny) {
         return w * (
                 18 * Fb(i, j)
                 + 10 * (Fb(i, j - 0.5) + Fb(i, j + 0.5))
@@ -242,7 +251,7 @@ double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, i
                 );
     }
 
-    abort();
+    make_fpe();
     return 1e308;
 }
 

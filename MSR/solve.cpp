@@ -103,7 +103,7 @@ void apply_preconditioner_msr_matrix(int n, double* A, int* I, double* v, double
         v[i] *= A[i];
     }
     
-    for(i = i2 - 1; i >= i1; ++i) {
+    for(i = i2 - 1; i >= i1; --i) {
         l = I[i + 1] - I[i];
         J = I[i];
         s = v[i];

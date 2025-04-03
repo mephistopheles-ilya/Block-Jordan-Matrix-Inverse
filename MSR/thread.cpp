@@ -32,11 +32,11 @@ void* thread_func(void* argument ) {
     int it = 0;
 
     double hx = (b - a) / nx;
-    double hy = (c - d) / ny;
+    double hy = (d - c) / ny;
 
     int len_diag = (nx + 1) * (ny + 1);
     if (thr_num == 0) {
-        fill_A(nx, ny, hx, hy, I, A, p, thr_num); 
+        fill_I(nx, ny, I);
     }
     barrier(p);
 

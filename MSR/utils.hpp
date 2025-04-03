@@ -9,7 +9,11 @@
 #include <algorithm>
 #include <type_traits>
 #include <cstring>
+#include <stdio.h>
 
+inline void make_fpe(double x = 0) {
+    printf("%lf\n", 1./x);
+}
 
 template <typename... Args>
 class memmory_manager {
@@ -195,6 +199,31 @@ inline void barrier(int p) {
 
 }
 
+template <typename T, size_t alignment> 
+struct aligned_allocator {
+    typedef T value_type;
+    typedef T *pointer;
+
+    pointer allocate(size_t n) {
+        void *chunk = std::aligned_alloc(alignment,  n * sizeof(value_type));
+        return static_cast<pointer>(chunk);
+    }
+
+    void deallocate(pointer p, size_t) {
+        free(p);
+    }
+
+    template <typename U> 
+    aligned_allocator(const aligned_allocator<U, alignment> &) {}
+
+    aligned_allocator() {}
+    aligned_allocator(const aligned_allocator &) {}
+
+    template <typename U> 
+    struct rebind { typedef aligned_allocator<U, alignment> other; };
+
+};
+
 inline void reduce_sum_double_det(int p, int k, double& s) {
 
     struct alignas(128) alignad_double {
@@ -202,7 +231,7 @@ inline void reduce_sum_double_det(int p, int k, double& s) {
 
     };
 
-    static std::vector<alignad_double> results(p);
+    static std::vector<alignad_double, aligned_allocator<alignad_double, 128>> results(p);
 
     double sum = 0;
     results[k].num = s;
@@ -213,6 +242,8 @@ inline void reduce_sum_double_det(int p, int k, double& s) {
     }
 
     s = sum;
+
+    barrier(p);
 }
 
 inline double get_cpu_time() {

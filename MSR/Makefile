@@ -2,22 +2,22 @@ ifeq ($(origin CXX),default)
   CXX = g++
 endif
 
-CXXFLAGS ?=  -O0 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wunused -Wcast-align\
+CXXFLAGS ?=  -O3 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wunused -Wcast-align\
 			-Werror -pedantic -pedantic-errors -Wfloat-equal -Wpointer-arith -Wformat-security\
 			-Wmissing-format-attribute -Wformat=1 -Wwrite-strings -Wcast-align -Wno-long-long\
 			-Woverloaded-virtual -Wnon-virtual-dtor -Wcast-qual -Wno-suggest-attribute=format\
-			-pthread -std=c++14 -fsanitize=leak,undefined,address
+			-pthread -std=c++17 #-fsanitize=thread -fsanitize=leak,undefined,address
 			#-march=native -ffast-math
 			#-ffast-math #-march=native
 			#-fsanitize=leak,undefined,address
 
 #CXXFLAGS ?= -fsanitize=leak,undefined,address -g
-LDFLAGS ?=  -fsanitize=leak,undefined,address
+#LDFLAGS ?=  -fsanitize=thread#-fsanitize=leak,undefined,address
 #CXXFLAGS ?= -O3 -mfpmath=sse
 
 
-CSRC = main.cpp thread.cpp fill_msr.cpp mult.cpp
-COBJ = main.o thread.o fill_msr.o mult.o
+CSRC = main.cpp thread.cpp fill_msr.cpp solve.cpp residuals.cpp
+COBJ = main.o thread.o fill_msr.o solve.o residuals.o
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -c $^ -o $@

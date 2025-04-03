@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    int len_msr = get_len_msr(nx, ny); // maby + 1
+    int len_msr = get_len_msr(nx, ny) + 1; // maby + 1
     int len_diag = (nx + 1) * (ny + 1);
     double* A = new (std::nothrow) double[len_msr];
     double* B = new (std::nothrow) double[len_diag];
