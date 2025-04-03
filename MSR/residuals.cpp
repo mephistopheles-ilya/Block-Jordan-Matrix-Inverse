@@ -2,6 +2,16 @@
 #include "utils.hpp"
 
 #include <cmath>
+ 
+/*__________
+< govnokod >
+ ----------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+*/
 
 double Pf(double* res, double x, double y, double a, double c, double hx, double hy, int nx, int ny) {
     int i = (x - a) / hx;

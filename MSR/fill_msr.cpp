@@ -116,7 +116,7 @@ void fill_A_ij(int nx, int ny, double hx, double hy, int i,int j, double* A_diag
         A_offdiag[2] = 2 * s / 24.;
         return;
     } else if (i == nx && j == ny) {
-        A_diag[0] = 2 * s / 24.;
+        A_diag[0] = 2 * s / 12.;
         A_offdiag[0] = 1 * s / 24.;
         A_offdiag[1] = 2 * s / 24.;
         A_offdiag[2] = 1 * s / 24.;
@@ -208,8 +208,8 @@ double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, i
         return w * (
                 18 * Fb(i, j)
                 + 10 * (Fb(i, j - 0.5) + Fb(i, j + 0.5))
-                + 20 * (Fb(i - 0.5, j) + Fb(i - 0.5, j + 0.5))
-                + 4 * (Fb(i - 0.5, j) + Fb(i - 1, j - 0.5) + Fb(i - 0.5, j + 0.5))
+                + 20 * (Fb(i - 0.5, j) + Fb(i - 0.5, j - 0.5))
+                + 4 * (Fb(i - 0.5, j - 1) + Fb(i - 1, j - 0.5) + Fb(i - 0.5, j + 0.5))
                 + 1 * (Fb(i, j - 1) + Fb(i, j + 1))
                 + 2 * (Fb(i - 1, j) + Fb(i - 1, j - 1))
                 );

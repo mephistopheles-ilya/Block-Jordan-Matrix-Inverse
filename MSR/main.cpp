@@ -5,6 +5,8 @@
 #include "fill_msr.hpp"
 #include "utils.hpp"
 
+#include <signal.h>
+
 #include <fenv.h>
 
 
@@ -13,6 +15,11 @@
 int main(int argc, char* argv[]) {
 
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
+
+    struct sigaction sa = {};
+    sa.sa_handler = handler;
+    sa.sa_flags = SA_RESTART | SA_NODEFER;
+    sigaction(SIGABRT, &sa, NULL);
 
     double a = -1., b = -1., c = -1., d = -1.;
     int nx = -1, ny = -1;
@@ -38,11 +45,11 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
-    int len_msr = get_len_msr(nx, ny) + 1; // maby + 1
+    int len_msr = get_len_msr(nx, ny) + 1;
     int len_diag = (nx + 1) * (ny + 1);
     double* A = new (std::nothrow) double[len_msr];
     double* B = new (std::nothrow) double[len_diag];
-    int* I  = new (std::nothrow) int[len_msr]; // maby size_t
+    int* I  = new (std::nothrow) int[len_msr];
     double* x = new (std::nothrow) double[len_diag];
     double* r = new (std::nothrow) double[len_diag];
     double* u = new (std::nothrow) double[len_diag];

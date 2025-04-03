@@ -22,7 +22,7 @@ int min_residual_msr_matrix(int n, double* A, int* I, double* b, double* x, doub
         mult_sub_vector(n, x, v, tau, p, k);
         mult_sub_vector(n, r, u, tau, p, k);
     }
-    if(it > maxit) {
+    if(it >= maxit) {
         return -1;
     }
     return it;
@@ -69,6 +69,7 @@ double scalar_product(int n, double* x, double* y, int p, int k) {
         s += x[i] * y[i];
     }
     reduce_sum_double_det(p, k, s);
+    //reduce_sum(p, &s, n);
     return s;
 }
 

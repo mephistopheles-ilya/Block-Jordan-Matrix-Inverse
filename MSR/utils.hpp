@@ -10,9 +10,16 @@
 #include <type_traits>
 #include <cstring>
 #include <stdio.h>
+#include <unistd.h>
 
 inline void make_fpe(double x = 0) {
     printf("%lf\n", 1./x);
+}
+
+inline void handler(int /*n*/) {
+    char msg[] = "got signal\n";
+    auto ret = write(1, msg, sizeof(msg) - 1);
+    (void)ret;
 }
 
 template <typename... Args>
