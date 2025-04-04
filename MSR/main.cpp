@@ -5,7 +5,6 @@
 #include "fill_msr.hpp"
 #include "utils.hpp"
 
-#include <signal.h>
 
 #include <fenv.h>
 
@@ -16,10 +15,12 @@ int main(int argc, char* argv[]) {
 
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
 
+#if 0
     struct sigaction sa = {};
     sa.sa_handler = handler;
     sa.sa_flags = SA_RESTART | SA_NODEFER;
     sigaction(SIGABRT, &sa, NULL);
+#endif
 
     double a = -1., b = -1., c = -1., d = -1.;
     int nx = -1, ny = -1;
@@ -40,13 +41,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (b <= a || d <= c || nx <= 2 || ny <= 2 || k < 0 || k > 7 || eps < 0 || mi < 0 || p <= 0) {
+    if (b <= a || d <= c || nx < 2 || ny < 2 || k < 0 || k > 7 || eps < 0 || mi < 0 || p <= 0) {
         printf("Wrong parametrs of commad line\n");
         return 2;
     }
 
-    int len_msr = get_len_msr(nx, ny) + 1;
-    int len_diag = (nx + 1) * (ny + 1);
+    const int len_msr = get_len_msr(nx, ny) + 1;
+    const int len_diag = (nx + 1) * (ny + 1);
     double* A = new (std::nothrow) double[len_msr];
     double* B = new (std::nothrow) double[len_diag];
     int* I  = new (std::nothrow) int[len_msr];
@@ -62,8 +63,12 @@ int main(int argc, char* argv[]) {
         printf("Not enough memmory\n");
         return 3;
     }
+
+#if 0
     fill_with_zeros<double, double, int, double, double, double, double> fwz(A, B, I, x, r, u, v);
     fwz.apply_memset(len_msr, len_diag, len_msr, len_diag, len_diag, len_diag, len_diag);
+#endif
+    memset(x, 0, len_diag);
 
     for(int thr_num = 0; thr_num < p; ++thr_num) {
         args[thr_num].a = a;

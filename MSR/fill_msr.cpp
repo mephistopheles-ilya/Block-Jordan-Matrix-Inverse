@@ -1,7 +1,6 @@
 #include "fill_msr.hpp"
 #include "utils.hpp"
 
-#include <new>
 #include <cstdlib>
 
 void ij2l(int nx, int /*ny*/, int i, int j, int& l) {
@@ -29,34 +28,6 @@ int get_off_diag(int nx, int ny, int i, int j, int* I_ij) {
     if (j < ny) { Fa(i, j + 1); }
     if (i < nx && j < ny) { Fa(i + 1, j + 1); }
     return m;
-}
-
-int get_len_msr_off_diag(int nx, int ny) {
-    int m = 0, i = 0, j = 0;
-    for(i = 0; i <= nx; ++i) {
-        for (j = 0; j <= ny; ++j) {
-            m += get_off_diag(nx, ny, i, j);
-        }
-    }
-    return m;
-}
-
-int alocate_msr_matrix(int nx, int ny, double** p_A, int** p_I) {
-    int diag_len = (nx + 1) * (ny + 1);
-    int off_diag = get_len_msr_off_diag(nx, ny);
-    int len = diag_len + off_diag + 1;
-    double* A = nullptr;
-    int* I = nullptr;
-    A = new (std::nothrow) double[len];
-    I = new (std::nothrow) int[len];
-    if (A == nullptr || I == nullptr) {
-        delete[] A;
-        delete[] I;
-        return 1;
-    }
-    *p_A = A;
-    *p_I = I;
-    return 0;
 }
 
 
@@ -133,7 +104,7 @@ void fill_A_ij(int nx, int ny, double hx, double hy, int i,int j, double* A_diag
         return;
     }
 
-    make_fpe();
+    abort();
 }
 
 void fill_A(int nx, int ny, double hx, double hy, int* I, double* A, int p, int k) {
@@ -251,7 +222,7 @@ double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, i
                 );
     }
 
-    make_fpe();
+    abort();
     return 1e308;
 }
 
@@ -269,6 +240,45 @@ void fill_B(double a, double c, int nx, int ny, double hx, double hy, double* b,
     }
     barrier(p);
 }
+
+
+
+
+#if 0
+int get_len_msr_off_diag(int nx, int ny) {
+    int m = 0, i = 0, j = 0;
+    for(i = 0; i <= nx; ++i) {
+        for (j = 0; j <= ny; ++j) {
+            m += get_off_diag(nx, ny, i, j);
+        }
+    }
+    return m;
+}
+
+int alocate_msr_matrix(int nx, int ny, double** p_A, int** p_I) {
+    int diag_len = (nx + 1) * (ny + 1);
+    int off_diag = get_len_msr_off_diag(nx, ny);
+    int len = diag_len + off_diag + 1;
+    double* A = nullptr;
+    int* I = nullptr;
+    A = new (std::nothrow) double[len];
+    I = new (std::nothrow) int[len];
+    if (A == nullptr || I == nullptr) {
+        delete[] A;
+        delete[] I;
+        return 1;
+    }
+    *p_A = A;
+    *p_I = I;
+    return 0;
+}
+#endif
+
+
+
+
+
+
 
 
     

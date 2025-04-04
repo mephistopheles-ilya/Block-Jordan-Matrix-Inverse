@@ -4,7 +4,7 @@
 #include <cmath>
  
 /*__________
-< govnokod >
+< doesn't work >
  ----------
         \   ^__^
          \  (oo)\_______
@@ -62,20 +62,15 @@ double Pf(double* res, double x, double y, double a, double c, double hx, double
 
 double calc_r1(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)) {
     int j = 0, j1 = 0, j2 = 0;
-    double max = -1, cur_val = 0;
+    double max = -1, cur_val1 = 0, cur_val2 =0;
     thread_rows(ny - 1, p, k, j1, j2);
     for(j = j1; j < j2; ++j) {
         for(int i = 0; i < nx; ++i) {
-            cur_val = std::fabs(f(a + (i + 2./3) * hx, c + (j + 1./3) * hy) 
+            cur_val1 = std::fabs(f(a + (i + 2./3) * hx, c + (j + 1./3) * hy) 
                     - Pf(res, a + (i + 2./3) * hx, c + (j + 1./3) * hy, a, c, hx, hy, nx, ny));
-            if (cur_val > max) {
-                max = cur_val;
-            }
-            cur_val = std::fabs(f(a + (i + 1./3) * hx, c + (j + 2./3) * hy) 
+            cur_val2 = std::fabs(f(a + (i + 1./3) * hx, c + (j + 2./3) * hy) 
                     - Pf(res, a + (i + 1./3) * hx, c + (j + 2./3) * hy, a, c, hx, hy, nx, ny));
-            if (cur_val > max) {
-                max = cur_val;
-            }
+            max = std::max({max, cur_val1, cur_val2});
 
         }
     }

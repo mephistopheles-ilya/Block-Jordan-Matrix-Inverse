@@ -7,20 +7,10 @@
 #include <tuple>
 #include <utility>
 #include <algorithm>
-#include <type_traits>
 #include <cstring>
 #include <stdio.h>
 #include <unistd.h>
 
-inline void make_fpe(double x = 0) {
-    printf("%lf\n", 1./x);
-}
-
-inline void handler(int /*n*/) {
-    char msg[] = "got signal\n";
-    auto ret = write(1, msg, sizeof(msg) - 1);
-    (void)ret;
-}
 
 template <typename... Args>
 class memmory_manager {
@@ -66,6 +56,149 @@ public:
     }
 };
 
+
+inline void barrier(int p) {
+
+    struct closure_barrier {
+        pthread_barrier_t barrier;
+        closure_barrier(int p) {
+            pthread_barrier_init(&barrier, nullptr, p);
+        }
+        ~closure_barrier() {
+            pthread_barrier_destroy(&barrier);
+        }
+    };
+
+    static closure_barrier bar(p);
+
+    pthread_barrier_wait(&bar.barrier);
+
+}
+
+inline void reduce_sum_double_det(int p, int k, double& s) {
+
+    struct no_false_sharing_double {
+        double nums[16] = {0};
+
+    };
+
+    static std::vector<no_false_sharing_double> results(p);
+
+    double sum = 0;
+    results[k].nums[0] = s;
+
+    barrier(p);
+
+    for(int l = 0; l < p; ++l) {
+        sum += results[l].nums[0];
+    }
+
+    s = sum;
+
+    barrier(p);
+}
+
+
+
+template <typename T>
+void reduce_max(int p, T* a, int n) {
+    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+    static pthread_cond_t c_in = PTHREAD_COND_INITIALIZER;
+    static pthread_cond_t c_out = PTHREAD_COND_INITIALIZER;
+    static int t_in = 0;
+    static int t_out = 0;
+    static T* r = nullptr;
+    int i;
+    if(p <= 1) return;
+    pthread_mutex_lock(&m);
+    if(r == nullptr) {
+        r = a;
+    } else {
+        for(i = 0; i < n; ++i) r[i] = std::max(r[i], a[i]);
+    }
+    ++t_in;
+    if(t_in >= p) {
+        t_out = 0;
+        pthread_cond_broadcast(&c_in);
+    } else {
+        while(t_in < p) {
+            pthread_cond_wait(&c_in, &m);
+        }
+    }
+    if(r != a) {
+        for(i = 0; i < n; ++i) {
+            a[i] = r[i];
+        }
+    }
+    ++t_out;
+    if(t_out >= p) {
+        t_in = 0;
+        r = nullptr;
+        pthread_cond_broadcast(&c_out);
+    } else {
+        while (t_out < p) {
+            pthread_cond_wait(&c_out, &m);
+        }
+    }
+    pthread_mutex_unlock(&m);
+}
+
+inline double get_cpu_time() {
+    struct rusage buf;
+    getrusage(RUSAGE_THREAD, &buf);
+    return (double)(buf.ru_utime.tv_sec) + (double)(buf.ru_utime.tv_usec)/1000000.;
+}
+
+inline double get_full_time() {
+    struct timeval buf;
+    gettimeofday(&buf, 0);
+    return (double)(buf.tv_sec) + (double)(buf.tv_usec)/1000000.;
+}
+
+inline void thread_rows(int n, int p, int k, int& i1, int& i2) {
+    i1 = n * k;
+    i1 /= p;
+    i2 = n * (k + 1);
+    i2 /= p;
+}
+
+#if 0
+inline void reduce_sum_two_double_det(int p, int k, double& s1, double& s2) {
+    struct no_false_sharing_double {
+        double nums[16] = {0};
+
+    };
+
+    static std::vector<no_false_sharing_double> results1(p);
+
+    double sum1 = 0, sum2 = 0;
+    results1[k].nums[0] = s1;
+    results1[k].nums[1] = s2;
+
+    barrier(p);
+
+    for(int l = 0; l < p; ++l) {
+        sum1 += results1[l].nums[0];
+        sum2 += results1[l].nums[1];
+    }
+
+    s1 = sum1;
+    s2 = sum2;
+
+    barrier(p);
+}
+
+inline void make_fpe(double x = 0) {
+    printf("%lf\n", 1./x);
+}
+
+inline void handler(int /*n*/) {
+    char msg[] = "got signal\n";
+    auto ret = write(1, msg, sizeof(msg) - 1);
+    (void)ret;
+}
+
+
 template <typename... Args>
 class fill_with_zeros {
 
@@ -92,13 +225,7 @@ public:
     void apply_memset(Nums... nums) {
         apply_memset_impl(std::make_index_sequence<sizeof...(Nums)>{}, nums...);
     }
-};
-
-
-
-        
-        
-            
+};            
 
 
 template <typename T>
@@ -144,67 +271,8 @@ void reduce_sum(int p, T* a, int n) {
     pthread_mutex_unlock(&m);
 }
 
-template <typename T>
-void reduce_max(int p, T* a, int n) {
-    static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-    static pthread_cond_t c_in = PTHREAD_COND_INITIALIZER;
-    static pthread_cond_t c_out = PTHREAD_COND_INITIALIZER;
-    static int t_in = 0;
-    static int t_out = 0;
-    static T* r = nullptr;
-    int i;
-    if(p <= 1) return;
-    pthread_mutex_lock(&m);
-    if(r == nullptr) {
-        r = a;
-    } else {
-        for(i = 0; i < n; ++i) r[i] = std::max(r[i], a[i]);
-    }
-    ++t_in;
-    if(t_in >= p) {
-        t_out = 0;
-        pthread_cond_broadcast(&c_in);
-    } else {
-        while(t_in < p) {
-            pthread_cond_wait(&c_in, &m);
-        }
-    }
-    if(r != a) {
-        for(i = 0; i < n; ++i) {
-            a[i] = r[i];
-        }
-    }
-    ++t_out;
-    if(t_out >= p) {
-        t_in = 0;
-        r = nullptr;
-        pthread_cond_broadcast(&c_out);
-    } else {
-        while (t_out < p) {
-            pthread_cond_wait(&c_out, &m);
-        }
-    }
-    pthread_mutex_unlock(&m);
-}
 
 
-inline void barrier(int p) {
-
-    struct closure_barrier {
-        pthread_barrier_t barrier;
-        closure_barrier(int p) {
-            pthread_barrier_init(&barrier, nullptr, p);
-        }
-        ~closure_barrier() {
-            pthread_barrier_destroy(&barrier);
-        }
-    };
-
-    static closure_barrier bar(p);
-
-    pthread_barrier_wait(&bar.barrier);
-
-}
 
 template <typename T, size_t alignment> 
 struct aligned_allocator {
@@ -231,43 +299,5 @@ struct aligned_allocator {
 
 };
 
-inline void reduce_sum_double_det(int p, int k, double& s) {
+#endif
 
-    struct alignas(128) alignad_double {
-        double num = -1.;
-
-    };
-
-    static std::vector<alignad_double, aligned_allocator<alignad_double, 128>> results(p);
-
-    double sum = 0;
-    results[k].num = s;
-    barrier(p);
-
-    for(int l = 0; l < p; ++l) {
-        sum += results[l].num;
-    }
-
-    s = sum;
-
-    barrier(p);
-}
-
-inline double get_cpu_time() {
-    struct rusage buf;
-    getrusage(RUSAGE_THREAD, &buf);
-    return (double)(buf.ru_utime.tv_sec) + (double)(buf.ru_utime.tv_usec)/1000000.;
-}
-
-inline double get_full_time() {
-    struct timeval buf;
-    gettimeofday(&buf, 0);
-    return (double)(buf.tv_sec) + (double)(buf.tv_usec)/1000000.;
-}
-
-inline void thread_rows(int n, int p, int k, int& i1, int& i2) {
-    i1 = n * k;
-    i1 /= p;
-    i2 = n * (k + 1);
-    i2 /= p;
-}

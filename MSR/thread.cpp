@@ -1,4 +1,6 @@
 #include <cmath>
+#include <pthread.h>
+#include <sys/sysinfo.h>
 
 #include "thread.hpp"
 #include "utils.hpp"
@@ -6,9 +8,11 @@
 #include "solve.hpp"
 #include "residuals.hpp"
 
+
+
 void* thread_func(void* argument ) {
     Arg* arg = (Arg *)argument;
-    const int maxsteps = 100;
+    const int maxit_no_restart = 50;
     double a = arg->a;
     double b = arg->b;
     double c = arg->c;
@@ -31,6 +35,12 @@ void* thread_func(void* argument ) {
     double t1 = -1, t2 = -1, r1 = -1, r2 = -1, r3 = -1, r4 = -1;
     int it = 0;
 
+    int nproc = get_nprocs();
+    cpu_set_t cpu;
+    CPU_ZERO(&cpu);
+    CPU_SET(nproc - 1 - (thr_num % (nproc)), &cpu);
+    pthread_setaffinity_np(pthread_self(), sizeof(cpu), &cpu);
+
     double hx = (b - a) / nx;
     double hy = (d - c) / ny;
 
@@ -45,7 +55,7 @@ void* thread_func(void* argument ) {
 
     barrier(p);
     t1 = get_full_time();
-    it = min_residual_msr_matrix_full(len_diag, A, I, B, x, r, u, v, eps, maxit, maxsteps, p, thr_num); 
+    it = min_residual_msr_matrix_full(len_diag, A, I, B, x, r, u, v, eps, maxit, maxit_no_restart, p, thr_num); 
     barrier(p);
     t1 = get_full_time() - t1;
 
