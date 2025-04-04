@@ -133,6 +133,14 @@ void apply_preconditioner_msr_matrix(int n, double* A, int* I, double* v, double
 }
 
 
+void apply_preconditioner_msr_matrix_J(int n, double* A, int* /*I*/, double* v, double* r, int p, int k) {
+    int i = 0, i1 = 0, i2 = 0;
+    thread_rows(n, p, k, i1, i2);
+    for(i = i1; i < i2; ++i) {
+        v[i] = r[i] / A[i];
+    }
+    barrier(p);
+}
 
 
 

@@ -6,14 +6,14 @@
 #include "utils.hpp"
 
 
-#include <fenv.h>
+//#include <fenv.h>
 
 
 
 
 int main(int argc, char* argv[]) {
 
-    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
+    //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
 
 #if 0
     struct sigaction sa = {};
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
     double t2 = args[0].t2;
     int it = args[0].it;
     
-    printf ("%s : Task = %d R1 = %e R2 = %e R3 = %e R4 = %e T1 = %.2f T2 = %.2f \n It = %d E = %e K = %d Nx = %d Ny = %d P = %d\n",
+    printf ("%s : Task = %d R1 = %e R2 = %e R3 = %e R4 = %e T1 = %.2f T2 = %.2f \n\t It = %d E = %e K = %d Nx = %d Ny = %d P = %d\n",
             argv[0], task, r1, r2, r3, r4, t1, t2, it, eps, k, nx, ny, p);
 
     return 0;

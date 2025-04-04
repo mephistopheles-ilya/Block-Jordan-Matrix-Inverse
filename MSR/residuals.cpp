@@ -15,7 +15,7 @@
 
 double Pf(double* res, double x, double y, double a, double c, double hx, double hy, int nx, int ny) {
     int i = (x - a) / hx;
-    int j = (y - c) / hx;
+    int j = (y - c) / hy;
     double k[8] = {0};
     double x0 = 0., y0 = 0., z0 = 0.;
     double x1 = 0., y1 = 0., z1 = 0.;
@@ -31,7 +31,7 @@ double Pf(double* res, double x, double y, double a, double c, double hx, double
     y2 = c + (j + 1) * hy;
     z2 = res[l2];
 
-    if (hy/hx * (y - y0) >= (x - x0)) {
+   if (hy * (x - (a + i * hx)) / hx + c + j * hy - y >= 0) {
         ij2l(nx, ny, i + 1, j + 0, l1);
         x1 = a + (i + 1) * hx;
         y1 = c + (j + 0) * hy;
@@ -66,10 +66,24 @@ double calc_r1(double* res, double a, double c, double hx, double hy, int nx, in
     thread_rows(ny - 1, p, k, j1, j2);
     for(j = j1; j < j2; ++j) {
         for(int i = 0; i < nx; ++i) {
+#if 1
             cur_val1 = std::fabs(f(a + (i + 2./3) * hx, c + (j + 1./3) * hy) 
                     - Pf(res, a + (i + 2./3) * hx, c + (j + 1./3) * hy, a, c, hx, hy, nx, ny));
             cur_val2 = std::fabs(f(a + (i + 1./3) * hx, c + (j + 2./3) * hy) 
                     - Pf(res, a + (i + 1./3) * hx, c + (j + 2./3) * hy, a, c, hx, hy, nx, ny));
+#endif
+#if 0
+            int l1 = 0, l2 = 0, l3 = 0, l4 = 0;
+            ij2l(nx, ny, i, j, l1);
+            ij2l(nx, ny, i + 1, j, l2);
+            ij2l(nx, ny, i, j + 1, l3);
+            ij2l(nx, ny, i + 1, j + 1, l4);
+
+            cur_val1 = std::fabs(f(a + (i + 2./3) * hx, c + (j + 1./3) * hy)
+                    - 1./3 * (res[l1] + res[l2] + res[l4]));
+            cur_val1 = std::fabs(f(a + (i + 1./3) * hx, c + (j + 2./3) * hy)
+                    - 1./3 * (res[l1] + res[l3] + res[l4]));
+#endif
             max = std::max({max, cur_val1, cur_val2});
 
         }
@@ -81,13 +95,26 @@ double calc_r1(double* res, double a, double c, double hx, double hy, int nx, in
 double calc_r2(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)) {
     int j = 0, j1 = 0, j2 = 0;
     double sum = 0;
+    int l1 = 0, l2 = 0, l3 = 0, l4 = 0;
     thread_rows(ny - 1, p, k, j1, j2);
     for(j = j1; j < j2; ++j) {
         for(int i = 0; i < nx; ++i) {
+            ij2l(nx, ny, i, j, l1);
+            ij2l(nx, ny, i + 1, j, l2);
+            ij2l(nx, ny, i, j + 1, l3);
+            ij2l(nx, ny, i + 1, j + 1, l4);
+#if 1
             sum += std::fabs(f(a + (i + 2./3) * hx, c + (j + 1./3) * hy) 
                     - Pf(res, a + (i + 2./3) * hx, c + (j + 1./3) * hy, a, c, hx, hy, nx, ny));
             sum += std::fabs(f(a + (i + 1./3) * hx, c + (j + 2./3) * hy) 
                     - Pf(res, a + (i + 1./3) * hx, c + (j + 2./3) * hy, a, c, hx, hy, nx, ny));
+#endif
+#if 0
+            sum += std::fabs(f(a + (i + 2./3) * hx, c + (j + 1./3) * hy)
+                    - 1./3 * (res[l1] + res[l2] + res[l4]));
+            sum += std::fabs(f(a + (i + 1./3) * hx, c + (j + 2./3) * hy)
+                    - 1./3 * (res[l1] + res[l3] + res[l4]));
+#endif
 
         }
     }
