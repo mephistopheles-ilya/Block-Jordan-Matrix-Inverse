@@ -45,6 +45,9 @@ void* thread_func(void* argument ) {
     double hy = (d - c) / ny;
 
     int len_diag = (nx + 1) * (ny + 1);
+    barrier(p);
+    t1 = get_full_time();
+
     if (thr_num == 0) {
         fill_I(nx, ny, I);
     }
@@ -53,9 +56,7 @@ void* thread_func(void* argument ) {
     fill_A(nx, ny, hx, hy, I, A, p, thr_num);
     fill_B(a, c, nx, ny, hx, hy, B, p, thr_num, f);
 
-    barrier(p);
-    t1 = get_full_time();
-    it = min_residual_msr_matrix_full(len_diag, A, I, B, x, r, u, v, eps, maxit, maxit_no_restart, p, thr_num); 
+    it = min_residual_msr_matrix_full(len_diag, A, I, B, x, r, u, v, eps, maxit, maxit_no_restart, p, thr_num);
     barrier(p);
     t1 = get_full_time() - t1;
 
@@ -77,7 +78,7 @@ void* thread_func(void* argument ) {
     arg->it = it;
 
     return nullptr;
-};
+}
 
 
 double (*get_funk(int num))(double, double) {
@@ -107,7 +108,7 @@ double (*get_funk(int num))(double, double) {
     };
 
     switch (num) {
-        case 0: 
+        case 0:
             return f0;
         case 1:
             return f1;

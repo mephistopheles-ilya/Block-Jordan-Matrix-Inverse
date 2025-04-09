@@ -6,14 +6,14 @@
 #include "utils.hpp"
 
 
-//#include <fenv.h>
+#include <fenv.h>
 
 
 
 
 int main(int argc, char* argv[]) {
 
-    //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
 
 #if 0
     struct sigaction sa = {};
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
     fill_with_zeros<double, double, int, double, double, double, double> fwz(A, B, I, x, r, u, v);
     fwz.apply_memset(len_msr, len_diag, len_msr, len_diag, len_diag, len_diag, len_diag);
 #endif
-    memset(x, 0, len_diag);
+    memset(x, 0, len_diag * sizeof(double));
 
     for(int thr_num = 0; thr_num < p; ++thr_num) {
         args[thr_num].a = a;

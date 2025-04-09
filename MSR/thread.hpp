@@ -25,6 +25,8 @@ struct Arg {
     double* u =  nullptr;
     double* v = nullptr;
 
+    void get() const;
+
 };
 
 void* thread_func(void* arg);

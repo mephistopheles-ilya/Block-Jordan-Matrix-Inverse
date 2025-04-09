@@ -162,6 +162,35 @@ inline void thread_rows(int n, int p, int k, int& i1, int& i2) {
     i2 /= p;
 }
 
+template <typename... Args>
+class fill_with_zeros {
+
+private :
+
+    std::tuple<Args*...> pointers;
+
+    template <size_t... Is, typename... Nums>
+    void apply_memset_impl(std::index_sequence<Is...>, Nums... nums) {
+        expand_t((memset(std::get<Is>(pointers), 0, nums * 
+                        sizeof(std::remove_pointer_t< std::remove_reference_t< decltype(std::get<Is>(pointers)) > >)), 0)...);
+    }
+
+
+public: 
+
+    fill_with_zeros(Args*... args): pointers(args...) {}
+
+    struct expand_t {
+        expand_t(int...) {}
+    };
+
+    template <typename... Nums>
+    void apply_memset(Nums... nums) {
+        apply_memset_impl(std::make_index_sequence<sizeof...(Nums)>{}, nums...);
+    }
+};            
+
+
 #if 0
 inline void reduce_sum_two_double_det(int p, int k, double& s1, double& s2) {
     struct no_false_sharing_double {
@@ -199,33 +228,6 @@ inline void handler(int /*n*/) {
 }
 
 
-template <typename... Args>
-class fill_with_zeros {
-
-private :
-
-    std::tuple<Args*...> pointers;
-
-    template <size_t... Is, typename... Nums>
-    void apply_memset_impl(std::index_sequence<Is...>, Nums... nums) {
-        expand_t((memset(std::get<Is>(pointers), 0, nums * 
-                        sizeof(std::remove_pointer_t< std::remove_reference_t< decltype(std::get<Is>(pointers)) > >)), 0)...);
-    }
-
-
-public: 
-
-    fill_with_zeros(Args*... args): pointers(args...) {}
-
-    struct expand_t {
-        expand_t(int...) {}
-    };
-
-    template <typename... Nums>
-    void apply_memset(Nums... nums) {
-        apply_memset_impl(std::make_index_sequence<sizeof...(Nums)>{}, nums...);
-    }
-};            
 
 
 template <typename T>
