@@ -1,6 +1,7 @@
 #include "fill_msr.hpp"
 #include "utils.hpp"
 
+#include <algorithm>
 #include <cmath>
  
 

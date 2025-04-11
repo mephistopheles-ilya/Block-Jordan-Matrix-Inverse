@@ -21,6 +21,7 @@ int min_residual_msr_matrix_full(int n, double* A, int* I, double* b, double* x,
             maxit_no_restart = maxit_res;
         }
         ret = min_residual_msr_matrix(n, A, I, b, x, r, u, v, prec, maxit_no_restart, p, k);
+        //ret = min_error_msr_matrix(n, A, I, b, x, r, u, v, prec, maxit_no_restart, p, k);
         if (ret >= 0) {
             its += ret;
             break;
@@ -33,6 +34,30 @@ int min_residual_msr_matrix_full(int n, double* A, int* I, double* b, double* x,
     return its;
 }
 
+
+int min_error_msr_matrix(int n, double* A, int* I, double* b, double* x, double* r, double* u, double* v
+        , double prec, int maxit, int p, int k) {
+    double tau = 0., c1 = 0., c2 = 0.;
+    int it = 0;
+    matrix_mult_vector_msr(n, A, I, x, r, p, k);
+    mult_sub_vector(n, r, b, 1., p, k);
+    for(it = 0; it < maxit; ++it) {
+        apply_preconditioner_msr_matrix(n, A, I, v, r, p, k);
+        matrix_mult_vector_msr(n, A, I, v, u, p, k);
+        c1 = scalar_product(n, v, r, p, k);
+        c2 = scalar_product(n, u, v, p, k);
+        if (c1 < prec || c2 < prec) {
+            break;
+        }
+        tau = c1 / c2;
+        mult_sub_vector(n, x, v, tau, p, k);
+        mult_sub_vector(n, r, u, tau, p, k);
+    }
+    if(it >= maxit) {
+        return -1;
+    }
+    return it;
+}
 
 int min_residual_msr_matrix(int n, double* A, int* I, double* b, double* x, double* r, double* u, double* v
         , double prec, int maxit, int p, int k) {

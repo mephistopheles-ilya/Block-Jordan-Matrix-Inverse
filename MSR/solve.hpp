@@ -10,3 +10,6 @@ int min_residual_msr_matrix(int n, double* A, int* I, double* b, double* x, doub
 int min_residual_msr_matrix_full(int n, double* A, int* I, double* b, double* x, double* r, double* u, double* v
         , double eps, int maxit, int maxit_no_restart, int p, int k);
 void apply_preconditioner_msr_matrix_J(int n, double* A, int* /*I*/, double* v, double* r, int p, int k);
+int min_error_msr_matrix(int n, double* A, int* I, double* b, double* x, double* r, double* u, double* v
+        , double prec, int maxit, int p, int k);
+

@@ -43,7 +43,7 @@ void fill_I(int nx, int ny, int* I) {
     I[l] = r;
 }
 
-void fill_A_ij(int nx, int ny, double hx, double hy, int i,int j, double* A_diag, double* A_offdiag) {
+void fill_A_ij(int nx, int ny, double hx, double hy, int i, int j, double* A_diag, double* A_offdiag) {
     double s = hx * hy;
     int l = 0;
     if (i > 0 && i < nx && j > 0 && j < ny) {
