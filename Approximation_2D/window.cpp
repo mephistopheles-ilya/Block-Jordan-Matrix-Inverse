@@ -8,10 +8,14 @@
 
 #include "residuals.hpp"
 
+#include <limits>
+#include <algorithm>
 #include <cstring>
+#include <cmath>
 #include <sys/sysinfo.h>
 #include <QTimer>
 #include <QCloseEvent>
+#include <QPainter>
 
 MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
         ,int mx, int my, int k, double eps, int mi, int p): 
@@ -72,11 +76,15 @@ void MainWindow::create_threads() {
             abort();
         }
     }
+}
+
+void MainWindow::wait_threads() {
     for(int thr_num = 0; thr_num < p; ++thr_num) {
         pthread_join(args[thr_num].tid, nullptr);
     }
     this->close();
 }
+
 
 
 
@@ -164,8 +172,8 @@ void* MainWindow::create_msr_approximation(void* argument) {
     CPU_SET(nproc - 1 - (thr_num % (nproc)), &cpu);
     pthread_setaffinity_np(pthread_self(), sizeof(cpu), &cpu);
 
-    double hx = (b - a) / nx;
-    double hy = (d - c) / ny;
+    double hx = (b - a) / (nx - 1);
+    double hy = (d - c) / (ny - 1);
 
     int len_diag = (nx + 1) * (ny + 1);
     int t_in = 0;
@@ -221,4 +229,209 @@ void* MainWindow::create_msr_approximation(void* argument) {
     return nullptr;
 }
 
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_0) {
+
+    } else if (event->key() == Qt::Key_1) {
+
+    } else if (event->key() == Qt::Key_2) {
+
+    } else if (event->key() == Qt::Key_3) {
+
+    } else if (event->key() == Qt::Key_4) {
+
+    } else if (event->key() == Qt::Key_5) {
+
+    } else if (event->key() == Qt::Key_6) {
+
+    } else if (event->key() == Qt::Key_7) {
+
+    } else if (event->key() == Qt::Key_8) {
+
+    } else if (event->key() == Qt::Key_9) {
+
+    }
+}
+
+void MainWindow::get_rgb_color(double value, double max_value, double min_value, double& R, double& G, double& B) {
+    static double R1 = 0, R2 = 255;
+    static double G1 = 255, G2 = 0;
+    static double B1 = 0, B2 = 0;
+    double normal_mean = 0;
+    if (max_value - min_value > 1e-16) {
+        normal_mean = (value - min_value)/(max_value - min_value);
+    }
+    R = R1 * (1 - normal_mean) + R2 * normal_mean;
+    G = G1 * (1 - normal_mean) + G2 * normal_mean;
+    B = B1 * (1 - normal_mean) + B2 * normal_mean;
+}
+
+void MainWindow::get_max_min_value(const data_to_plot& data, double& max_value, double& min_value) {
+    double local_max = -1, local_min = std::numeric_limits<double>::max();
+
+    double a = data.a, b = data.b;
+    double c = data.c, d = data.d;
+    int nx = data.nx, ny =  data.ny;
+    int mx = data.mx, my = data.my;
+    double (*f)(double, double) = data.f;
+    double* x_approximation = data.x_approximation;
+    double hmx = (b - a) / (mx - 1);
+    double hmy = (d - c) / (my - 1);
+    double hnx = (b - a) / (nx - 1);
+    double hny = (d - c) / (ny - 1);
+    auto current_paint = data.current_paint;
+    if (current_paint == what_to_paint::function) {
+        for(int j = 0; j < my; ++j) {
+            for(int i = 0; i < mx; ++i) {
+                double value_low_triangle =  f(a + hmx * (i + 2./3), c + hmy * (j + 1./3));
+                double value_up_triangle = f(a + hmx * (i + 1./3), c + hmy * (j + 2./3));
+                local_max = std::max({local_max, value_low_triangle, value_up_triangle});
+                local_min = std::min({local_min, value_low_triangle, value_up_triangle});
+            }
+        }
+        max_value = local_max;
+        min_value = local_min;
+        return;
+    }
+    if (current_paint == what_to_paint::approximation) {
+        for(int j = 0; j < my; ++j) {
+            for(int i = 0; i < mx; ++i) {
+                double value_low_triangle =  Pf(x_approximation, a + hmx * (i + 2./3), c + hmy * (j + 1./3), a, c, hnx, hny, nx, ny); 
+                double value_up_triangle = Pf(x_approximation, a + hmx * (i + 1./3), c + hmy * (j + 2./3), a, c, hnx, hny, nx, ny);
+                local_max = std::max({local_max, value_low_triangle, value_up_triangle});
+                local_min = std::min({local_min, value_low_triangle, value_up_triangle});
+            }
+        }
+        max_value = local_max;
+        min_value = local_min;
+        return;
+    }
+    if (current_paint == what_to_paint::residual) {
+        for(int j = 0; j < my; ++j) {
+            for(int i = 0; i < mx; ++i) {
+                double value_low_triangle = std::fabs(f(a + hmx * (i + 2./3), c + hmy * (j + 1./3))
+                             - Pf(x_approximation, a + hmx * (i + 2./3), c + hmy * (j + 1./3), a, c, hnx, hny, nx, ny));
+                double value_up_triangle = std::fabs(f(a + hmx * (i + 1./3), c + hmy * (j + 2./3))
+                             - Pf(x_approximation, a + hmx * (i + 1./3), c + hmy * (j + 2./3), a, c, hnx, hny, nx, ny));
+                local_max = std::max({local_max, value_low_triangle, value_up_triangle});
+                local_min = std::min({local_min, value_low_triangle, value_up_triangle});
+            }
+        }
+        max_value = local_max;
+        min_value = local_min;
+        return;
+    }
+}
+
+QPointF MainWindow::l2g (double x_loc, double y_loc, double x_min, double x_max, double y_min, double y_max) {
+    double x_gl = (x_loc - x_min) / (x_max - x_min) * width ();
+    double y_gl = (y_max - y_loc) / (y_max - y_min) * height();
+    return QPointF(x_gl, y_gl);
+}
+
+void MainWindow::paint_graph(const data_to_plot& data) {
+    double max_value = 0, min_value = 0;
+    double R = 0, G = 0, B = 0;
+    get_max_min_value(data, max_value, min_value);
+    QPainter painter(this);
+    QBrush brush;
+    QPen pen(Qt::black, 0, Qt::SolidLine);
+    QPointF triangle[3];
+    double a = data.a, b = data.b;
+    double c = data.c, d = data.d;
+    int nx = data.nx, ny =  data.ny;
+    int mx = data.mx, my = data.my;
+    double (*f)(double, double) = data.f;
+    double* x_approximation = data.x_approximation;
+    double hmx = (b - a) / (mx - 1);
+    double hmy = (d - c) / (my - 1);
+    double hnx = (b - a) / (nx - 1);
+    double hny = (d - c) / (ny - 1);
+    auto current_paint = data.current_paint;
+    if (current_paint == what_to_paint::function) {
+        for(int j = 0; j < my; ++j) {
+            for(int i = 0; i < mx; ++i) {
+                double value_low_triangle =  f(a + hmx * (i + 2./3), c + hmy * (j + 1./3));
+                get_rgb_color(value_low_triangle, max_value, min_value, R, G, B);
+                brush.setColor(QColor(R, G, B));
+                pen.setColor(QColor(R, G, B));
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                triangle[0] = l2g(a + hmx * i, c + hmy * j, a, b, c, d);
+                triangle[1] = l2g(a + hmx * (i + 1), c + hmy * j, a, b, c, d);
+                triangle[2] = l2g(a + hmx * (i + 1), c + hmy * (j + 1), a, b, c, d);
+                painter.drawPolygon(triangle, 3);
+
+                double value_up_triangle = f(a + hmx * (i + 1./3), c + hmy * (j + 2./3));
+                get_rgb_color(value_up_triangle, max_value, min_value, R, G, B);
+                brush.setColor(QColor(R, G, B));
+                pen.setColor(QColor(R, G, B));
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                triangle[1] = l2g(a + hmx * (i), c + hmy * (j + 1), a, b, c, d);
+                painter.drawPolygon(triangle, 3);
+            }
+        }
+        return;
+    }
+    if (current_paint == what_to_paint::approximation) {
+        for(int j = 0; j < my; ++j) {
+            for(int i = 0; i < mx; ++i) {
+                double value_low_triangle =  Pf(x_approximation, a + hmx * (i + 2./3), c + hmy * (j + 1./3), a, c, hnx, hny, nx, ny); 
+                get_rgb_color(value_low_triangle, max_value, min_value, R, G, B);
+                brush.setColor(QColor(R, G, B));
+                pen.setColor(QColor(R, G, B));
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                triangle[0] = l2g(a + hmx * i, c + hmy * j, a, b, c, d);
+                triangle[1] = l2g(a + hmx * (i + 1), c + hmy * j, a, b, c, d);
+                triangle[2] = l2g(a + hmx * (i + 1), c + hmy * (j + 1), a, b, c, d);
+                painter.drawPolygon(triangle, 3);
+
+                double value_up_triangle = Pf(x_approximation, a + hmx * (i + 1./3), c + hmy * (j + 2./3), a, c, hnx, hny, nx, ny);
+                get_rgb_color(value_up_triangle, max_value, min_value, R, G, B);
+                brush.setColor(QColor(R, G, B));
+                pen.setColor(QColor(R, G, B));
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                triangle[1] = l2g(a + hmx * (i), c + hmy * (j + 1), a, b, c, d);
+                painter.drawPolygon(triangle, 3);
+            }
+        }
+        return;
+    }
+    if (current_paint == what_to_paint::residual) {
+        for(int j = 0; j < my; ++j) {
+            for(int i = 0; i < mx; ++i) {
+                double value_low_triangle = std::fabs(f(a + hmx * (i + 2./3), c + hmy * (j + 1./3))
+                             - Pf(x_approximation, a + hmx * (i + 2./3), c + hmy * (j + 1./3), a, c, hnx, hny, nx, ny));
+                get_rgb_color(value_low_triangle, max_value, min_value, R, G, B);
+                brush.setColor(QColor(R, G, B));
+                pen.setColor(QColor(R, G, B));
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                triangle[0] = l2g(a + hmx * i, c + hmy * j, a, b, c, d);
+                triangle[1] = l2g(a + hmx * (i + 1), c + hmy * j, a, b, c, d);
+                triangle[2] = l2g(a + hmx * (i + 1), c + hmy * (j + 1), a, b, c, d);
+                painter.drawPolygon(triangle, 3);
+
+                double value_up_triangle = std::fabs(f(a + hmx * (i + 1./3), c + hmy * (j + 2./3))
+                             - Pf(x_approximation, a + hmx * (i + 1./3), c + hmy * (j + 2./3), a, c, hnx, hny, nx, ny));
+                get_rgb_color(value_up_triangle, max_value, min_value, R, G, B);
+                brush.setColor(QColor(R, G, B));
+                pen.setColor(QColor(R, G, B));
+                painter.setPen(pen);
+                painter.setBrush(brush);
+                triangle[1] = l2g(a + hmx * (i), c + hmy * (j + 1), a, b, c, d);
+                painter.drawPolygon(triangle, 3);
+            }
+        }
+        return;
+    }
+
+}
+
+void MainWindow::paintEvent(QPaintEvent* ) {
+    
+}
 
