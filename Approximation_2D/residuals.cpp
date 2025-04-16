@@ -52,6 +52,21 @@ double Pf(double* res, double x, double y, double a, double c, double hx, double
     return num / den;
 }
 
+double find_max(double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)) {
+    int j = 0, j1 = 0, j2 = 0;
+    double max = -1, cur_val1 = 0, cur_val2 = 0;
+    thread_rows(ny - 1, p, k, j1, j2);
+    for(j = j1; j < j2; ++j) {
+        for(int i = 0; i < nx; ++i) {
+            cur_val1 = f(a + (i + 2./3) * hx, c + (j + 1./3) * hy);
+            cur_val2 = f(a + (i + 1./3) * hx, c + (j + 2./3) * hy);
+            max = std::max({max, cur_val1, cur_val2});
+        }
+    }
+    reduce_max(p, &max, 1);
+    return max;
+}
+
 double calc_r1(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)) {
     int j = 0, j1 = 0, j2 = 0;
     double max = -1, cur_val1 = 0, cur_val2 =0;
@@ -117,7 +132,8 @@ double calc_r2(double* res, double a, double c, double hx, double hy, int nx, in
     return sum;
 }
 
-double calc_r3(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)) {
+double calc_r3(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)
+        , double add_error) {
     int j = 0, j1 = 0, j2 = 0, l = 0;
     double max = -1, cur_val = 0;
     thread_rows(ny, p, k, j1, j2);
@@ -125,6 +141,9 @@ double calc_r3(double* res, double a, double c, double hx, double hy, int nx, in
         for(int i = 0; i <= nx; ++i) {
             ij2l(nx, ny, i, j, l);
             cur_val = std::fabs(f(a + i * hx, c + j * hy) - res[l]);
+            if (i == nx/2 && j == ny/2) {
+                cur_val = std::fabs(f(a + i * hx, c + j * hy) + add_error - res[l]);
+            }
             if (cur_val > max) {
                 max = cur_val;
             }
@@ -134,14 +153,19 @@ double calc_r3(double* res, double a, double c, double hx, double hy, int nx, in
     return max;
 }
 
-double calc_r4(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)) {
+double calc_r4(double* res, double a, double c, double hx, double hy, int nx, int ny, int p, int k, double (*f)(double, double)
+        , double add_error) {
     int j = 0, j1 = 0, j2 = 0, l = 0;
     double sum = 0;
     thread_rows(ny, p, k, j1, j2);
     for(j = j1; j < j2; ++j) {
         for(int i = 0; i <= nx; ++i) {
             ij2l(nx, ny, i, j, l);
-            sum += std::fabs(f(a + i * hx, c + j * hy) - res[l]);
+            if (i == nx/2 && j == ny/2) {
+                sum += std::fabs(f(a + i * hx, c + j * hy) + add_error - res[l]);
+            } else {
+                sum += std::fabs(f(a + i * hx, c + j * hy) - res[l]);
+            }
         }
     }
     sum *= hx * hy;

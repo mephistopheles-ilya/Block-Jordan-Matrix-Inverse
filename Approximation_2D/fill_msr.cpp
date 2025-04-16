@@ -126,8 +126,25 @@ void fill_A(int nx, int ny, double hx, double hy, int* I, double* A, int p, int 
 
 #define Fb(I, J) (f(x0 + (I) * hx, y0 + (J) * hy))
 
-double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, int j, double (*f)(double, double)) {
+double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, int j, double (*f)(double, double), double add_error) {
     double w = hx * hy / 192;
+    if (i == nx/2 && j == ny/2) {
+        return w * (
+                36 * (Fb(i, j) + add_error)
+                + 20 * (
+                    Fb(i + 0.5, j) + Fb(i, j - 0.5) + Fb(i - 0.5, j - 0.5)
+                    + Fb(i - 0.5, j) + Fb(i, j + 0.5) + Fb(i + 0.5, j + 0.5)
+                    )
+                + 4 * (
+                    Fb(i + 0.5, j - 0.5) + Fb(i - 0.5, j - 1) + Fb(i - 1, j - 0.5)
+                    + Fb(i - 0.5, j + 0.5) + Fb(i + 0.5, j + 1) + Fb(i + 1, j + 0.5)
+                    )
+                + 2 * (
+                    Fb(i + 1, j) + Fb(i, j - 1) + Fb(i - 1, j - 1) 
+                    + Fb(i - 1, j) + Fb(i, j + 1) + Fb(i + 1, j + 1)
+                    )
+                );
+    }
     if (i > 0 && i < nx && j > 0 && j < ny) {
         return w * (
                 36 * Fb(i, j)
@@ -226,7 +243,7 @@ double F_IJ(int nx, int ny, double hx, double hy, double x0, double y0, int i, i
     return 1e308;
 }
 
-void fill_B(double a, double c, int nx, int ny, double hx, double hy, double* b, int p, int k, double (*f)(double, double)) {
+void fill_B(double a, double c, int nx, int ny, double hx, double hy, double* b, int p, int k, double (*f)(double, double), double add_error) {
     int l1 = 0, l2 = 0, l = 0;
     int N = (nx + 1) * (ny + 1);
     int i = 0, j = 0;
@@ -236,7 +253,7 @@ void fill_B(double a, double c, int nx, int ny, double hx, double hy, double* b,
     l2 /= p;
     for(l = l1; l < l2; ++l) {
         l2ij(nx, ny, i, j, l);
-        b[l] = F_IJ(nx, ny, hx, hy, a, c, i, j, f); 
+        b[l] = F_IJ(nx, ny, hx, hy, a, c, i, j, f, add_error); 
     }
     barrier(p);
 }
