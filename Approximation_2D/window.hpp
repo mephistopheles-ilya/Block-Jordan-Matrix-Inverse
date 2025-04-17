@@ -17,7 +17,6 @@ class MainWindow: public QMainWindow {
         MainWindow(double a, double b, double c, double d, int nx, int ny
                 , int mx, int my, int k, double eps, int mi, int p);
         void create_threads();
-        void wait_threads();
         QSize minimumSizeHint() const override;
         QSize sizeHint() const override;
         ~MainWindow();
@@ -27,6 +26,7 @@ class MainWindow: public QMainWindow {
         void keyPressEvent(QKeyEvent* event) override;
         void paintEvent(QPaintEvent* ) override;
         void closeEvent(QCloseEvent* event ) override;
+        void updateMenuTitle();
 
     private:
         enum class what_to_paint {
@@ -48,8 +48,10 @@ class MainWindow: public QMainWindow {
             int func_num = 0;
             double (*f)(double, double) = nullptr;
             double* x_approximation = nullptr;
+            double f_abs_max = 0;
             what_to_paint current_paint = what_to_paint::udefine;
             int s = 0;
+            int p = 0;
             double s_a = 0, s_b = 0, s_c = 0, s_d = 0;
             int inaccuracy = 0;
             bool is_reday = false;
@@ -93,6 +95,7 @@ class MainWindow: public QMainWindow {
 
 
         QTimer* timer = nullptr;
+        QMenu* info = nullptr;
         pthread_mutex_t p_mutex = PTHREAD_MUTEX_INITIALIZER;
         pthread_cond_t p_cond = PTHREAD_COND_INITIALIZER;
 

@@ -8,6 +8,7 @@
 
 #include "residuals.hpp"
 
+#include <iostream>
 #include <limits>
 #include <algorithm>
 #include <cstring>
@@ -18,6 +19,7 @@
 #include <QCloseEvent>
 #include <QPainter>
 #include <QMessageBox>
+#include <QMenuBar>
 
 MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
         ,int mx, int my, int k, double eps, int mi, int p) {
@@ -58,11 +60,77 @@ MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
         args[thr_num].gui_mutex = &p_mutex;
         args[thr_num].gui_cond = &p_cond;
     }
+
+    setWindowTitle("Approximation 2D");
+    QMenuBar* menu = new QMenuBar(this);
+    setMenuBar(menu);
+    info = menu->addMenu("Calculatiing...");
+    
         
 
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::time_out_checker);
     timer -> start(100);
+}
+
+void MainWindow::updateMenuTitle() {
+    QString title;
+    int func_num = plot_task.func_num;
+    int nx = plot_task.nx, ny = plot_task.ny;
+    int mx = plot_task.mx, my = plot_task.my;
+    int s = plot_task.s;
+    int p = plot_task.p;
+    double f_abs_max = plot_task.f_abs_max;
+    switch (func_num) {
+        case 0: 
+            title = QString("k = 0 f(x, y) = 1, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            break;
+        case 1: 
+            title = QString("k = 1 f(x, y) = x, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+        case 2: 
+            title = QString("k = 2 f(x, y) = y, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+        case 3: 
+            title = QString("k = 3 f(x, y) = x + y, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+        case 4: 
+            title = QString("k = 4 f(x, y) = sqrt(x^2 + y^2), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+        case 5: 
+            title = QString("k = 5 f(x, y) = x^2 + y^2, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+        case 6: 
+            title = QString("k = 6 f(x, y) = exp(x^2 - y^2), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+        case 7: 
+            title = QString("k = 7 f(x) = 1/(25*(x^2 + y^2) + 1), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+           break;
+    }
+    info->setTitle(title);
+}
+
+MainWindow::~MainWindow() {
+    int p = args[0].p;
+    for(int thr_num = 0; thr_num < p; ++thr_num) {
+        pthread_join(args[thr_num].tid, nullptr);
+    }
+}
+
+QSize MainWindow::minimumSizeHint() const {
+    return QSize(100, 100);
+}
+
+QSize MainWindow::sizeHint() const {
+    return QSize(1000, 1000);
 }
 
 void MainWindow::time_out_checker() {
@@ -98,17 +166,10 @@ void MainWindow::create_threads() {
     }
 }
 
-void MainWindow::wait_threads() {
-    int p = args[0].p;
-    for(int thr_num = 0; thr_num < p; ++thr_num) {
-        pthread_join(args[thr_num].tid, nullptr);
-    }
-    this->close();
-}
 
 
-void MainWindow::closeEvent(QCloseEvent* ) {
-
+void MainWindow::closeEvent(QCloseEvent* event) {
+    event->accept();
 }
 
 
@@ -147,6 +208,7 @@ void* MainWindow::create_msr_approximation(void* argument) {
         if (thr_num == 0) {
             //get_task and signal to stop
             pthread_mutex_lock(gui_mutex);
+            std::cout << "GET TASK" << std::endl;
             glob_task = *pointer_task;
             pthread_mutex_unlock(gui_mutex);
             if (glob_task.condition == msr_condition::has_task) {
@@ -214,7 +276,7 @@ void* MainWindow::create_msr_approximation(void* argument) {
 
             double max_f_value = 0;
             fill_A(task.nx, task.ny, hx, hy, I, A, p, thr_num);
-            max_f_value = find_min_max(a, c, hx, hy, task.nx, task.ny, p, thr_num, task.f);
+            max_f_value = find_max(a, c, hx, hy, task.nx, task.ny, p, thr_num, task.f);
             double add_error = task.inaccuracy * 0.1 * max_f_value;
             fill_B(a, c, task.nx, task.ny, hx, hy, B, p, thr_num, task.f, add_error);
 
@@ -261,8 +323,11 @@ void* MainWindow::create_msr_approximation(void* argument) {
 
         pthread_mutex_lock(gui_mutex);
         while(pointer_task->condition != msr_condition::has_task) {
+            std::cout << "WAITING: " << thr_num << std::endl;
             pthread_cond_wait(gui_cond, gui_mutex);
+            std::cout << "AWAIK "  << thr_num << std::endl;
         }
+        pthread_mutex_unlock(gui_mutex);
     }
 
 
@@ -272,6 +337,7 @@ void* MainWindow::create_msr_approximation(void* argument) {
 void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_0) {
         pthread_mutex_lock(&p_mutex);
+        std::cout << "HERE1" << std::endl;
         msr_condition cond = msr_task.condition;
         pthread_mutex_unlock(&p_mutex);
         if (cond != msr_condition::no_task) {
@@ -282,8 +348,9 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
         msr_task.func_num = (msr_task.func_num + 1) % 8;
         msr_task.f = get_funk(msr_task.func_num);
         msr_task.condition = msr_condition::has_task;
-        pthread_cond_broadcast(&p_cond);
         pthread_mutex_unlock(&p_mutex);
+        pthread_cond_broadcast(&p_cond);
+        std::cout << "HERE2" << std::endl;
 
     } else if (event->key() == Qt::Key_1) {
         pthread_mutex_lock(&p_mutex);
@@ -387,8 +454,9 @@ void MainWindow::get_max_min_value(const data_to_plot& data, double& max_value, 
 }
 
 QPointF MainWindow::l2g (double x_loc, double y_loc, double x_min, double x_max, double y_min, double y_max) {
+    int h = menuBar()->height();
     double x_gl = (x_loc - x_min) / (x_max - x_min) * width ();
-    double y_gl = (y_max - y_loc) / (y_max - y_min) * height();
+    double y_gl = (y_max - y_loc) / (y_max - y_min) * (height() - h) + h;
     return QPointF(x_gl, y_gl);
 }
 
@@ -397,7 +465,7 @@ void MainWindow::paint_graph(const data_to_plot& data) {
     double R = 0, G = 0, B = 0;
     get_max_min_value(data, max_value, min_value);
     QPainter painter(this);
-    QBrush brush;
+    QBrush brush(Qt::SolidPattern);
     QPen pen(Qt::black, 0, Qt::SolidLine);
     QPointF triangle[3];
     double a = data.a, b = data.b;
@@ -497,11 +565,10 @@ void MainWindow::paint_graph(const data_to_plot& data) {
 }
 
 void MainWindow::paintEvent(QPaintEvent* ) {
-    if (plot_task.is_reday == false) {
-        //just update title : Calculations in progess...
-        return;
+    if (plot_task.is_reday == true) {
+        updateMenuTitle();
+        paint_graph(plot_task); 
     }
-    paint_graph(plot_task); 
 }
 
 double (*get_funk(int num))(double, double) {

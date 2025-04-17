@@ -2,16 +2,19 @@ QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4) : QT += widgets
 
-QMAKE_CC = clang
-QMAKE_CXX = clang++
+QMAKE_CC = g++
+QMAKE_CXX = g++
 
-QMAKE_LINK = clang++
-QMAKE_LINK_SHLIB = clang++
+QMAKE_LINK = g++
+QMAKE_LINK_SHLIB = g++
 
-QMAKE_CXXFLAGS += -Wall -Wextra -Wpedantic -fsanitize=thread
+QMAKE_CXXFLAGS += -O3 -mfpmath=sse -fstack-protector-all -g -W -Wall -Wextra -Wunused -Wcast-align\
+			-Werror -pedantic -pedantic-errors -Wfloat-equal -Wpointer-arith -Wformat-security\
+			-Wmissing-format-attribute -Wformat=1 -Wwrite-strings -Wcast-align -Wno-long-long\
+			-Woverloaded-virtual -Wnon-virtual-dtor -Wcast-qual -Wno-suggest-attribute=format -pthread
 
-QMAKE_LFLAGS += -fsanitize=thread
+QMAKE_LFLAGS += -pthread
 
-SOURCES = main.cpp fill_msr.cpp residual.cpp solve.cpp thread.cpp window.cpp 
-HEADERS = fill_msr.hpp residual.hpp solve.hpp thread.hpp window.hpp
+SOURCES = main.cpp fill_msr.cpp residuals.cpp solve.cpp window.cpp 
+HEADERS = fill_msr.hpp residuals.hpp solve.hpp window.hpp
 TARGET = a.out
