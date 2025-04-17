@@ -42,7 +42,6 @@ int main(int argc, char* argv[]) {
     }
 
     MainWindow window(a, b, c, d, nx, ny, mx, my, k, eps, mi, p);
-    window.create_threads();
     window.show();
     app.exec();
 

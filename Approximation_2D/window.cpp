@@ -71,6 +71,12 @@ MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::time_out_checker);
     timer -> start(100);
+    for(int thr_num = 0; thr_num < p; ++thr_num) {
+        if (pthread_create(&(args[thr_num].tid), nullptr, create_msr_approximation, args + thr_num) != 0) {
+            printf("Cannot create new thread\n");
+            abort();
+        }
+    }
 }
 
 void MainWindow::updateMenuTitle() {
@@ -79,7 +85,7 @@ void MainWindow::updateMenuTitle() {
     int nx = plot_task.nx, ny = plot_task.ny;
     int mx = plot_task.mx, my = plot_task.my;
     int s = plot_task.s;
-    int p = plot_task.p;
+    int p = plot_task.inaccuracy;
     double f_abs_max = plot_task.f_abs_max;
     switch (func_num) {
         case 0: 
@@ -123,6 +129,7 @@ MainWindow::~MainWindow() {
     for(int thr_num = 0; thr_num < p; ++thr_num) {
         pthread_join(args[thr_num].tid, nullptr);
     }
+    delete[] plot_task.x_approximation;
 }
 
 QSize MainWindow::minimumSizeHint() const {
@@ -140,12 +147,18 @@ void MainWindow::time_out_checker() {
         need_update = true;
         msr_task.condition = msr_condition::no_task;
         //copy answr and task parametrs
+        int current_len = (plot_task.nx + 1) * (plot_task.ny + 1);
+        int new_len = (msr_task.nx + 1) * (msr_task.ny + 1);
+        if (new_len > current_len) {
+            delete[] plot_task.x_approximation;
+            plot_task.x_approximation = new double[new_len];
+        }
         plot_task.nx = msr_task.nx;
         plot_task.ny = msr_task.ny;
         plot_task.func_num = msr_task.func_num;
         plot_task.f = msr_task.f;
         plot_task.inaccuracy = msr_task.inaccuracy;
-        memcpy(plot_task.x_approximation, msr_task.x_approximation, (plot_task.nx + 1) * (plot_task.ny + 1) * sizeof(double)); 
+        memcpy(plot_task.x_approximation, msr_task.x_approximation, new_len * sizeof(double)); 
         plot_task.is_reday = true;
     }
     pthread_mutex_unlock(&p_mutex);
@@ -156,20 +169,22 @@ void MainWindow::time_out_checker() {
 
 
 
-void MainWindow::create_threads() {
-    int p = args[0].p;
-    for(int thr_num = 0; thr_num < p; ++thr_num) {
-        if (pthread_create(&(args[thr_num].tid), nullptr, create_msr_approximation, args + thr_num) != 0) {
-            printf("Cannot create new thread\n");
-            abort();
-        }
-    }
-}
-
-
-
 void MainWindow::closeEvent(QCloseEvent* event) {
-    event->accept();
+    bool accept = false;
+    pthread_mutex_lock(&p_mutex);
+    if (msr_task.condition == msr_condition::no_task 
+            || msr_task.condition == msr_condition::task_is_ready) {
+        msr_task.condition = msr_condition::quit_app;
+        pthread_cond_broadcast(&p_cond);
+        accept = true;
+    }
+    pthread_mutex_unlock(&p_mutex);
+    if (accept == true) {
+        event->accept();
+    } else {
+        QMessageBox::information(this, "Calculations in progress...", "Wait until the calculations end");
+        event->ignore();
+    }
 }
 
 
@@ -204,11 +219,11 @@ void* MainWindow::create_msr_approximation(void* argument) {
     int it = 0, len_diag = 0;
 
     static bool quit_app = false;
+    static int t_in = 0;
     while(true) {
         if (thr_num == 0) {
             //get_task and signal to stop
             pthread_mutex_lock(gui_mutex);
-            std::cout << "GET TASK" << std::endl;
             glob_task = *pointer_task;
             pthread_mutex_unlock(gui_mutex);
             if (glob_task.condition == msr_condition::has_task) {
@@ -322,10 +337,14 @@ void* MainWindow::create_msr_approximation(void* argument) {
         }
 
         pthread_mutex_lock(gui_mutex);
-        while(pointer_task->condition != msr_condition::has_task) {
-            std::cout << "WAITING: " << thr_num << std::endl;
+        ++t_in;
+        if (t_in >= p) {
+            t_in = 0;
+            if (pointer_task->condition == msr_condition::no_task || pointer_task->condition == msr_condition::task_is_ready ) {
+                pthread_cond_wait(gui_cond, gui_mutex);
+            }
+        } else {
             pthread_cond_wait(gui_cond, gui_mutex);
-            std::cout << "AWAIK "  << thr_num << std::endl;
         }
         pthread_mutex_unlock(gui_mutex);
     }
@@ -337,7 +356,6 @@ void* MainWindow::create_msr_approximation(void* argument) {
 void MainWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_0) {
         pthread_mutex_lock(&p_mutex);
-        std::cout << "HERE1" << std::endl;
         msr_condition cond = msr_task.condition;
         pthread_mutex_unlock(&p_mutex);
         if (cond != msr_condition::no_task) {
@@ -350,34 +368,151 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
         msr_task.condition = msr_condition::has_task;
         pthread_mutex_unlock(&p_mutex);
         pthread_cond_broadcast(&p_cond);
-        std::cout << "HERE2" << std::endl;
 
     } else if (event->key() == Qt::Key_1) {
         pthread_mutex_lock(&p_mutex);
-        plot_task.current_paint = static_cast<what_to_paint>((static_cast<int>(plot_task.current_paint) + 1) % 4);
+        switch (plot_task.current_paint) {
+            case what_to_paint::function:
+                plot_task.current_paint = what_to_paint::approximation;
+                break;
+            case what_to_paint::approximation:
+                plot_task.current_paint = what_to_paint::residual;
+                break;
+            case what_to_paint::residual:
+                plot_task.current_paint = what_to_paint::function;
+                break;
+        }
         pthread_mutex_unlock(&p_mutex);
         update();
 
     } else if (event->key() == Qt::Key_2) {
         pthread_mutex_lock(&p_mutex);
+        double s_a = plot_task.s_a, s_b = plot_task.s_b;
+        double s_c = plot_task.s_c, s_d = plot_task.s_d;
+        double tmp = (3 * s_a + s_b) / 4;
+        s_b = (3 * s_b + s_a) / 4;
+        s_a = tmp;
+        tmp = (3 * s_c + s_d) / 4;
+        s_d = (3 * s_d + s_c) / 4;
+        s_c = tmp;
+
+        if (s_b - s_a < 1e-6 || s_d - s_c < 1e-6) {
+            pthread_mutex_unlock(&p_mutex);
+            return;
+        }
+        plot_task.s += 1;
+        plot_task.s_a = s_a;
+        plot_task.s_b = s_b;
+        plot_task.s_c = s_c;
+        plot_task.s_d = s_d;
         pthread_mutex_unlock(&p_mutex);
         update();
     } else if (event->key() == Qt::Key_3) {
         pthread_mutex_lock(&p_mutex);
+        if (plot_task.s == 0) {
+            pthread_mutex_unlock(&p_mutex);
+            return;
+        }
+        plot_task.s -= 1;
+        if (plot_task.s == 0) {
+            plot_task.s_a = plot_task.a;
+            plot_task.s_b = plot_task.b;
+            plot_task.s_c = plot_task.c;
+            plot_task.s_d = plot_task.d;
+        } else {
+            double s_a = plot_task.s_a, s_b = plot_task.s_b;
+            double s_c = plot_task.s_c, s_d = plot_task.s_d;
+            double tmp = (3 * s_a - s_b) / 2;
+            s_b = (3 * s_b - s_a) / 2;
+            s_a = tmp;
+            tmp = (3 * s_c - s_d) / 2;
+            s_d = (3 * s_d - s_c) / 2;
+            s_c = tmp;
+            plot_task.s_a = s_a;
+            plot_task.s_b = s_b;
+            plot_task.s_c = s_c;
+            plot_task.s_d = s_d;
+        }
         pthread_mutex_unlock(&p_mutex);
         update();
     } else if (event->key() == Qt::Key_4) {
-
+        pthread_mutex_lock(&p_mutex);
+        msr_condition cond = msr_task.condition;
+        pthread_mutex_unlock(&p_mutex);
+        if (cond != msr_condition::no_task) {
+            QMessageBox::information(this, "Calculations in progress...", "Wait until the calculations end");
+            return;
+        }
+        pthread_mutex_lock(&p_mutex);
+        msr_task.nx = msr_task.nx * 2;
+        msr_task.ny = msr_task.ny * 2;
+        msr_task.condition = msr_condition::has_task;
+        pthread_mutex_unlock(&p_mutex);
+        pthread_cond_broadcast(&p_cond);
     } else if (event->key() == Qt::Key_5) {
-
+        pthread_mutex_lock(&p_mutex);
+        msr_condition cond = msr_task.condition;
+        pthread_mutex_unlock(&p_mutex);
+        if (cond != msr_condition::no_task) {
+            QMessageBox::information(this, "Calculations in progress...", "Wait until the calculations end");
+            return;
+        }
+        pthread_mutex_lock(&p_mutex);
+        msr_task.nx = msr_task.nx / 2;
+        if (msr_task.nx < 5) {
+            msr_task.nx = 5;
+        }
+        msr_task.ny = msr_task.ny / 2;
+        if (msr_task.ny < 5) {
+            msr_task.ny = 5;
+        }
+        msr_task.condition = msr_condition::has_task;
+        pthread_mutex_unlock(&p_mutex);
+        pthread_cond_broadcast(&p_cond);
     } else if (event->key() == Qt::Key_6) {
-
+        pthread_mutex_lock(&p_mutex);
+        msr_condition cond = msr_task.condition;
+        pthread_mutex_unlock(&p_mutex);
+        if (cond != msr_condition::no_task) {
+            QMessageBox::information(this, "Calculations in progress...", "Wait until the calculations end");
+            return;
+        }
+        pthread_mutex_lock(&p_mutex);
+        msr_task.inaccuracy += 1;
+        msr_task.condition = msr_condition::has_task;
+        pthread_mutex_unlock(&p_mutex);
+        pthread_cond_broadcast(&p_cond);
     } else if (event->key() == Qt::Key_7) {
-
+        pthread_mutex_lock(&p_mutex);
+        msr_condition cond = msr_task.condition;
+        pthread_mutex_unlock(&p_mutex);
+        if (cond != msr_condition::no_task) {
+            QMessageBox::information(this, "Calculations in progress...", "Wait until the calculations end");
+            return;
+        }
+        pthread_mutex_lock(&p_mutex);
+        msr_task.inaccuracy -= 1;
+        msr_task.condition = msr_condition::has_task;
+        pthread_mutex_unlock(&p_mutex);
+        pthread_cond_broadcast(&p_cond);
     } else if (event->key() == Qt::Key_8) {
-
+        pthread_mutex_lock(&p_mutex);
+        plot_task.mx = plot_task.mx * 2;
+        plot_task.my = plot_task.my * 2;
+        pthread_mutex_unlock(&p_mutex);
+        update();
     } else if (event->key() == Qt::Key_9) {
-
+        pthread_mutex_lock(&p_mutex);
+        plot_task.mx = plot_task.mx / 2;
+        if (plot_task.mx < 5) {
+            plot_task.mx = 5;
+        }
+        plot_task.my = plot_task.my / 2;
+        if (plot_task.my < 5) {
+            plot_task.my = 5;
+        }
+        pthread_mutex_unlock(&p_mutex);
+        update();
     }
 }
 
@@ -394,7 +529,7 @@ void MainWindow::get_rgb_color(double value, double max_value, double min_value,
     B = B1 * (1 - normal_mean) + B2 * normal_mean;
 }
 
-void MainWindow::get_max_min_value(const data_to_plot& data, double& max_value, double& min_value) {
+void MainWindow::get_max_min_value(data_to_plot& data, double& max_value, double& min_value) {
     double local_max = -1, local_min = std::numeric_limits<double>::max();
 
     double a = data.a, b = data.b;
@@ -421,6 +556,7 @@ void MainWindow::get_max_min_value(const data_to_plot& data, double& max_value, 
         }
         max_value = local_max;
         min_value = local_min;
+        data.f_abs_max = std::max(std::fabs(max_value), std::fabs(min_value));
         return;
     }
     if (current_paint == what_to_paint::approximation) {
@@ -434,6 +570,7 @@ void MainWindow::get_max_min_value(const data_to_plot& data, double& max_value, 
         }
         max_value = local_max;
         min_value = local_min;
+        data.f_abs_max = std::max(std::fabs(max_value), std::fabs(min_value));
         return;
     }
     if (current_paint == what_to_paint::residual) {
@@ -449,6 +586,7 @@ void MainWindow::get_max_min_value(const data_to_plot& data, double& max_value, 
         }
         max_value = local_max;
         min_value = local_min;
+        data.f_abs_max = std::max(std::fabs(max_value), std::fabs(min_value));
         return;
     }
 }
@@ -460,7 +598,7 @@ QPointF MainWindow::l2g (double x_loc, double y_loc, double x_min, double x_max,
     return QPointF(x_gl, y_gl);
 }
 
-void MainWindow::paint_graph(const data_to_plot& data) {
+void MainWindow::paint_graph(data_to_plot& data) {
     double max_value = 0, min_value = 0;
     double R = 0, G = 0, B = 0;
     get_max_min_value(data, max_value, min_value);
@@ -566,8 +704,8 @@ void MainWindow::paint_graph(const data_to_plot& data) {
 
 void MainWindow::paintEvent(QPaintEvent* ) {
     if (plot_task.is_reday == true) {
-        updateMenuTitle();
         paint_graph(plot_task); 
+        updateMenuTitle();
     }
 }
 
