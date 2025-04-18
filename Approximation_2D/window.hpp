@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QLabel>
 
 
 class MainWindow;
@@ -15,7 +16,7 @@ class MainWindow: public QMainWindow {
     public:
 
         MainWindow(double a, double b, double c, double d, int nx, int ny
-                , int mx, int my, int k, double eps, int mi, int p);
+                , int mx, int my, int k, double eps, int mi, int p, const char* prog_name);
         QSize minimumSizeHint() const override;
         QSize sizeHint() const override;
         ~MainWindow();
@@ -33,34 +34,33 @@ class MainWindow: public QMainWindow {
             approximation,
             residual
         };
+         struct data_to_plot {
+            double a = 0, b = 0, c = 0, d = 0;
+            int nx = 0, ny = 0, mx = 0, my = 0;
+            int func_num = 0;
+            double (*f)(double, double) = nullptr;
+            double s_a = 0, s_b = 0, s_c = 0, s_d = 0;
+            what_to_paint current_paint = what_to_paint::function;
+            double* x_approximation = nullptr;
+            double f_abs_max = 0;
+            int s = 0;
+            int inaccuracy = 0;
+            bool is_ready = false;
+        };
+
         enum class msr_condition {
             no_task,
             has_task,
             task_is_ready,
             quit_app
         };
-
-         struct data_to_plot {
-            double a = 0, b = 0, c = 0, d = 0;
-            int nx = 0, ny = 0, mx = 0, my = 0;
-            int func_num = 0;
-            double (*f)(double, double) = nullptr;
-            double* x_approximation = nullptr;
-            double f_abs_max = 0;
-            what_to_paint current_paint = what_to_paint::function;
-            int s = 0;
-            double s_a = 0, s_b = 0, s_c = 0, s_d = 0;
-            int inaccuracy = 0;
-            bool is_reday = false;
-        };
-
         struct data_to_msr {
             int nx = 0, ny = 0;
             int func_num = 0;
             double (*f)(double, double) = nullptr;
             double inaccuracy = 0;
-            double* x_approximation = nullptr;
             msr_condition condition = msr_condition::no_task; 
+            double* x_approximation = nullptr;
         };
 
         struct Arg {
@@ -69,10 +69,11 @@ class MainWindow: public QMainWindow {
             int maxit = 0;
             int p = 0;
             double a = 0, b = 0, c = 0, d = 0;
+            const char* prog_name = nullptr;
             pthread_t tid = 0;
             data_to_msr* task = nullptr;
-            pthread_mutex_t* gui_mutex = nullptr;
-            pthread_cond_t* gui_cond = nullptr;
+            pthread_mutex_t* p_mutex = nullptr;
+            pthread_cond_t* p_cond = nullptr;
         };
 
 
@@ -92,7 +93,8 @@ class MainWindow: public QMainWindow {
 
 
         QTimer* timer = nullptr;
-        QMenu* info = nullptr;
+        //QMenu* info = nullptr;
+        QLabel* status_label = nullptr;
         pthread_mutex_t p_mutex = PTHREAD_MUTEX_INITIALIZER;
         pthread_cond_t p_cond = PTHREAD_COND_INITIALIZER;
 

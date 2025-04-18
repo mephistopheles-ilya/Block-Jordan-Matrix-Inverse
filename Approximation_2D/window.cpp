@@ -1,14 +1,9 @@
 #include "window.hpp"
-
 #include "fill_msr.hpp"
-
 #include "utils.hpp"
-
 #include "solve.hpp"
-
 #include "residuals.hpp"
 
-#include <iostream>
 #include <limits>
 #include <algorithm>
 #include <cstring>
@@ -22,7 +17,7 @@
 #include <QMenuBar>
 
 MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
-        ,int mx, int my, int k, double eps, int mi, int p) {
+        ,int mx, int my, int k, double eps, int mi, int p, const char* prog_name) {
     plot_task.a = a;
     plot_task.b = b;
     plot_task.c = c;
@@ -43,7 +38,7 @@ MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
     msr_task.nx = nx;
     msr_task.ny = ny;
     msr_task.func_num = k;
-    msr_task.f= get_funk(k);
+    msr_task.f = get_funk(k);
     msr_task.condition = msr_condition::has_task;
 
     args = new Arg[p];
@@ -56,21 +51,28 @@ MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
         args[thr_num].b = b;
         args[thr_num].c = c;
         args[thr_num].d = d;
+        args[thr_num].prog_name = prog_name;
         args[thr_num].task = &msr_task;
-        args[thr_num].gui_mutex = &p_mutex;
-        args[thr_num].gui_cond = &p_cond;
+        args[thr_num].p_mutex = &p_mutex;
+        args[thr_num].p_cond = &p_cond;
     }
 
     setWindowTitle("Approximation 2D");
-    QMenuBar* menu = new QMenuBar(this);
-    setMenuBar(menu);
-    info = menu->addMenu("Calculatiing...");
-    
+    //QMenuBar* menu = new QMenuBar(this);
+    //setMenuBar(menu);
+    //info = menu->addMenu("Calculatiing...");
+    status_label = new QLabel(this);
+    status_label->setAlignment(Qt::AlignCenter);
+    menuBar()->setCornerWidget(status_label, Qt::TopLeftCorner);
+    status_label->setText("Calculatiing...");
+    status_label->setMinimumWidth(500);
+    status_label->setStyleSheet("QLabel { padding: 3px; background: #f0f0f0; }");
         
 
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::time_out_checker);
-    timer -> start(100);
+    timer -> start(200);
+
     for(int thr_num = 0; thr_num < p; ++thr_num) {
         if (pthread_create(&(args[thr_num].tid), nullptr, create_msr_approximation, args + thr_num) != 0) {
             printf("Cannot create new thread\n");
@@ -87,41 +89,59 @@ void MainWindow::updateMenuTitle() {
     int s = plot_task.s;
     int p = plot_task.inaccuracy;
     double f_abs_max = plot_task.f_abs_max;
+
+    QString mode;
+    switch (plot_task.current_paint) {
+        case what_to_paint::function:
+            mode = "Function";
+            break;
+        case what_to_paint::approximation:
+            mode = "Approximation";
+            break;
+        case what_to_paint::residual:
+            mode = "Residual";
+            break;
+    }
+
     switch (func_num) {
         case 0: 
-            title = QString("k = 0 f(x, y) = 1, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title = QString("k = 0 f(x, y) = 1, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
             break;
         case 1: 
-            title = QString("k = 1 f(x, y) = x, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title = QString("k = 1 f(x, y) = x, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
         case 2: 
-            title = QString("k = 2 f(x, y) = y, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title = QString("k = 2 f(x, y) = y, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
         case 3: 
-            title = QString("k = 3 f(x, y) = x + y, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title = QString("k = 3 f(x, y) = x + y, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
         case 4: 
-            title = QString("k = 4 f(x, y) = sqrt(x^2 + y^2), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title 
+                = QString("k = 4 f(x, y) = sqrt(x^2 + y^2), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
         case 5: 
-            title = QString("k = 5 f(x, y) = x^2 + y^2, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title = QString("k = 5 f(x, y) = x^2 + y^2, nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
         case 6: 
-            title = QString("k = 6 f(x, y) = exp(x^2 - y^2), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title = QString("k = 6 f(x, y) = exp(x^2 - y^2), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
         case 7: 
-            title = QString("k = 7 f(x) = 1/(25*(x^2 + y^2) + 1), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7")
-                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max);
+            title 
+            = QString("k = 7 f(x) = 1/(25*(x^2 + y^2) + 1), nx = %1, ny = %2, mx = %3, my = %4, s = %5, p = %6, max{|F_min|, |F_max|} = %7, Mode : %8")
+                .arg(nx).arg(ny).arg(mx).arg(my).arg(s).arg(p).arg(f_abs_max).arg(mode);
            break;
     }
-    info->setTitle(title);
+    //info->setTitle(title);
+    status_label->setText(title);
+    status_label->adjustSize();
 }
 
 MainWindow::~MainWindow() {
@@ -130,6 +150,7 @@ MainWindow::~MainWindow() {
         pthread_join(args[thr_num].tid, nullptr);
     }
     delete[] plot_task.x_approximation;
+    delete[] args;
 }
 
 QSize MainWindow::minimumSizeHint() const {
@@ -159,7 +180,7 @@ void MainWindow::time_out_checker() {
         plot_task.f = msr_task.f;
         plot_task.inaccuracy = msr_task.inaccuracy;
         memcpy(plot_task.x_approximation, msr_task.x_approximation, new_len * sizeof(double)); 
-        plot_task.is_reday = true;
+        plot_task.is_ready = true;
     }
     pthread_mutex_unlock(&p_mutex);
     if (need_update == true) {
@@ -204,6 +225,7 @@ void* MainWindow::create_msr_approximation(void* argument) {
     const int maxit = arg->maxit;
     const double eps = arg->eps;
     const double a = arg->a, b = arg->b, c = arg->c, d = arg->d;
+    const char* prog_name = arg->prog_name;
     data_to_msr* const pointer_task = arg->task;
 
     double* A = nullptr, *B = nullptr, *u = nullptr, *v = nullptr, *r = nullptr, *x = nullptr;
@@ -211,8 +233,8 @@ void* MainWindow::create_msr_approximation(void* argument) {
 
 
 
-    pthread_mutex_t* gui_mutex = arg->gui_mutex;
-    pthread_cond_t* gui_cond = arg->gui_cond;
+    pthread_mutex_t* p_mutex = arg->p_mutex;
+    pthread_cond_t* p_cond = arg->p_cond;
 
     double t1 = 0, t2 = 0, r1 = 0, r2 = 0, r3 = 0, r4 = 0;
     double hx = 0, hy = 0;
@@ -223,9 +245,9 @@ void* MainWindow::create_msr_approximation(void* argument) {
     while(true) {
         if (thr_num == 0) {
             //get_task and signal to stop
-            pthread_mutex_lock(gui_mutex);
+            pthread_mutex_lock(p_mutex);
             glob_task = *pointer_task;
-            pthread_mutex_unlock(gui_mutex);
+            pthread_mutex_unlock(p_mutex);
             if (glob_task.condition == msr_condition::has_task) {
                 //allocate memmory for task
                 delete[] glob_A;
@@ -310,15 +332,15 @@ void* MainWindow::create_msr_approximation(void* argument) {
 
 
             if (thr_num == 0) {
-                pthread_mutex_lock(gui_mutex);
+                pthread_mutex_lock(p_mutex);
                 if (pointer_task->condition == msr_condition::quit_app) {
                     quit_app = true;
                 }
                 pointer_task->condition = msr_condition::task_is_ready;
                 pointer_task->x_approximation = x;
                 printf ("%s : Task = %d R1 = %e R2 = %e R3 = %e R4 = %e T1 = %.2f T2 = %.2f \n\t It = %d E = %e K = %d Nx = %d Ny = %d P = %d\n",
-                        "a.out", 3, r1, r2, r3, r4, t1, t2, it, eps, task.func_num, task.nx, task.ny, p);
-                pthread_mutex_unlock(gui_mutex);
+                        prog_name, 3, r1, r2, r3, r4, t1, t2, it, eps, task.func_num, task.nx, task.ny, p);
+                pthread_mutex_unlock(p_mutex);
             }
             barrier(p);
             if (quit_app == true) {
@@ -336,17 +358,17 @@ void* MainWindow::create_msr_approximation(void* argument) {
             }
         }
 
-        pthread_mutex_lock(gui_mutex);
+        pthread_mutex_lock(p_mutex);
         ++t_in;
         if (t_in >= p) {
             t_in = 0;
             if (pointer_task->condition == msr_condition::no_task || pointer_task->condition == msr_condition::task_is_ready ) {
-                pthread_cond_wait(gui_cond, gui_mutex);
+                pthread_cond_wait(p_cond, p_mutex);
             }
         } else {
-            pthread_cond_wait(gui_cond, gui_mutex);
+            pthread_cond_wait(p_cond, p_mutex);
         }
-        pthread_mutex_unlock(gui_mutex);
+        pthread_mutex_unlock(p_mutex);
     }
 
 
@@ -578,8 +600,8 @@ void MainWindow::get_max_min_value(data_to_plot& data, double& max_value, double
             for(int i = 0; i < mx; ++i) {
                 double value_low_triangle = std::fabs(f(s_a + hmx * (i + 2./3), s_c + hmy * (j + 1./3))
                              - Pf(x_approximation, s_a + hmx * (i + 2./3), s_c + hmy * (j + 1./3), a, c, hnx, hny, nx, ny));
-                double value_up_triangle = std::fabs(f(a + hmx * (i + 1./3), c + hmy * (j + 2./3))
-                             - Pf(x_approximation, a + hmx * (i + 1./3), c + hmy * (j + 2./3), a, c, hnx, hny, nx, ny));
+                double value_up_triangle = std::fabs(f(s_a + hmx * (i + 1./3), s_c + hmy * (j + 2./3))
+                             - Pf(x_approximation, s_a + hmx * (i + 1./3), s_c + hmy * (j + 2./3), a, c, hnx, hny, nx, ny));
                 local_max = std::max({local_max, value_low_triangle, value_up_triangle});
                 local_min = std::min({local_min, value_low_triangle, value_up_triangle});
             }
@@ -702,9 +724,12 @@ void MainWindow::paint_graph(data_to_plot& data) {
 
 }
 
-void MainWindow::paintEvent(QPaintEvent* ) {
-    if (plot_task.is_reday == true) {
-        paint_graph(plot_task); 
+void MainWindow::paintEvent(QPaintEvent*) {
+    if (plot_task.is_ready == true) {
+        paint_graph(plot_task);
+        pthread_mutex_lock(&p_mutex);
+        printf("max{|F_max|, |F_min|} = %e\n", plot_task.f_abs_max);
+        pthread_mutex_unlock(&p_mutex);
         updateMenuTitle();
     }
 }

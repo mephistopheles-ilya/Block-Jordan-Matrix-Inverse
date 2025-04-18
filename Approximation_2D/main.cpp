@@ -3,10 +3,9 @@
 
 #include <stdio.h>
 
-#include <fenv.h>
-
 #include "window.hpp"
 
+#include <fenv.h>
 
 int main(int argc, char* argv[]) {
 
@@ -36,12 +35,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (b <= a || d <= c || nx < 2 || ny < 2 || mx < 2 || my < 2 || k < 0 || k > 7 || eps < 0 || mi < 0 || p <= 0) {
+    if (b <= a || d <= c || nx < 5 || ny < 5 || mx < 5 || my < 5 || k < 0 || k > 7 || eps < 0 || mi < 0 || p <= 0) {
         QMessageBox::critical(nullptr, "Error", "Wrong parametrs of commad line\n");
         return 2;
     }
 
-    MainWindow window(a, b, c, d, nx, ny, mx, my, k, eps, mi, p);
+    MainWindow window(a, b, c, d, nx, ny, mx, my, k, eps, mi, p, argv[0]);
     window.show();
     app.exec();
 
