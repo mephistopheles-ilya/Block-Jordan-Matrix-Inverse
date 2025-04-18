@@ -46,6 +46,7 @@ class MainWindow: public QMainWindow {
             int s = 0;
             int inaccuracy = 0;
             bool is_ready = false;
+            double max_value = 0, min_value = 0;
         };
 
         enum class msr_condition {
@@ -82,7 +83,7 @@ class MainWindow: public QMainWindow {
         void time_out_checker();
         void paint_graph(data_to_plot& data);
         void get_rgb_color(double value, double max_value, double min_value, double& R, double& G, double& B);
-        void get_max_min_value(data_to_plot& data, double& max_value, double& min_value);
+        void get_max_min_value(data_to_plot& data);
 
     private:
 

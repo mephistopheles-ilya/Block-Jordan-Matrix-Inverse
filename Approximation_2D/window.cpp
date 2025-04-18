@@ -4,6 +4,7 @@
 #include "solve.hpp"
 #include "residuals.hpp"
 
+#include <iostream>
 #include <limits>
 #include <algorithm>
 #include <cstring>
@@ -82,6 +83,7 @@ MainWindow::MainWindow(double a, double b, double c, double d, int nx, int ny
 }
 
 void MainWindow::updateMenuTitle() {
+    get_max_min_value(plot_task);
     QString title;
     int func_num = plot_task.func_num;
     int nx = plot_task.nx, ny = plot_task.ny;
@@ -142,6 +144,7 @@ void MainWindow::updateMenuTitle() {
     //info->setTitle(title);
     status_label->setText(title);
     status_label->adjustSize();
+    update();
 }
 
 MainWindow::~MainWindow() {
@@ -184,7 +187,7 @@ void MainWindow::time_out_checker() {
     }
     pthread_mutex_unlock(&p_mutex);
     if (need_update == true) {
-        update();
+        updateMenuTitle();
     }
 }
 
@@ -405,7 +408,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
                 break;
         }
         pthread_mutex_unlock(&p_mutex);
-        update();
+        updateMenuTitle();
 
     } else if (event->key() == Qt::Key_2) {
         pthread_mutex_lock(&p_mutex);
@@ -428,7 +431,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
         plot_task.s_c = s_c;
         plot_task.s_d = s_d;
         pthread_mutex_unlock(&p_mutex);
-        update();
+        updateMenuTitle();
     } else if (event->key() == Qt::Key_3) {
         pthread_mutex_lock(&p_mutex);
         if (plot_task.s == 0) {
@@ -456,7 +459,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
             plot_task.s_d = s_d;
         }
         pthread_mutex_unlock(&p_mutex);
-        update();
+        updateMenuTitle();
     } else if (event->key() == Qt::Key_4) {
         pthread_mutex_lock(&p_mutex);
         msr_condition cond = msr_task.condition;
@@ -522,7 +525,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
         plot_task.mx = plot_task.mx * 2;
         plot_task.my = plot_task.my * 2;
         pthread_mutex_unlock(&p_mutex);
-        update();
+        updateMenuTitle();
     } else if (event->key() == Qt::Key_9) {
         pthread_mutex_lock(&p_mutex);
         plot_task.mx = plot_task.mx / 2;
@@ -534,7 +537,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event) {
             plot_task.my = 5;
         }
         pthread_mutex_unlock(&p_mutex);
-        update();
+        updateMenuTitle();
     }
 }
 
@@ -551,9 +554,8 @@ void MainWindow::get_rgb_color(double value, double max_value, double min_value,
     B = B1 * (1 - normal_mean) + B2 * normal_mean;
 }
 
-void MainWindow::get_max_min_value(data_to_plot& data, double& max_value, double& min_value) {
+void MainWindow::get_max_min_value(data_to_plot& data) {
     double local_max = -1, local_min = std::numeric_limits<double>::max();
-
     double a = data.a, b = data.b;
     double c = data.c, d = data.d;
     double s_a = data.s_a, s_b = data.s_b;
@@ -576,9 +578,9 @@ void MainWindow::get_max_min_value(data_to_plot& data, double& max_value, double
                 local_min = std::min({local_min, value_low_triangle, value_up_triangle});
             }
         }
-        max_value = local_max;
-        min_value = local_min;
-        data.f_abs_max = std::max(std::fabs(max_value), std::fabs(min_value));
+        data.max_value = local_max;
+        data.min_value = local_min;
+        data.f_abs_max = std::max(std::fabs(local_max), std::fabs(local_min));
         return;
     }
     if (current_paint == what_to_paint::approximation) {
@@ -590,9 +592,9 @@ void MainWindow::get_max_min_value(data_to_plot& data, double& max_value, double
                 local_min = std::min({local_min, value_low_triangle, value_up_triangle});
             }
         }
-        max_value = local_max;
-        min_value = local_min;
-        data.f_abs_max = std::max(std::fabs(max_value), std::fabs(min_value));
+        data.max_value = local_max;
+        data.min_value = local_min;
+        data.f_abs_max = std::max(std::fabs(local_min), std::fabs(local_max));
         return;
     }
     if (current_paint == what_to_paint::residual) {
@@ -606,9 +608,9 @@ void MainWindow::get_max_min_value(data_to_plot& data, double& max_value, double
                 local_min = std::min({local_min, value_low_triangle, value_up_triangle});
             }
         }
-        max_value = local_max;
-        min_value = local_min;
-        data.f_abs_max = std::max(std::fabs(max_value), std::fabs(min_value));
+        data.max_value = local_max;
+        data.min_value = local_min;
+        data.f_abs_max = std::max(std::fabs(local_max), std::fabs(local_min));
         return;
     }
 }
@@ -621,9 +623,8 @@ QPointF MainWindow::l2g (double x_loc, double y_loc, double x_min, double x_max,
 }
 
 void MainWindow::paint_graph(data_to_plot& data) {
-    double max_value = 0, min_value = 0;
+    double max_value = data.max_value, min_value = data.min_value;
     double R = 0, G = 0, B = 0;
-    get_max_min_value(data, max_value, min_value);
     QPainter painter(this);
     QBrush brush(Qt::SolidPattern);
     QPen pen(Qt::black, 0, Qt::SolidLine);
@@ -730,7 +731,7 @@ void MainWindow::paintEvent(QPaintEvent*) {
         pthread_mutex_lock(&p_mutex);
         printf("max{|F_max|, |F_min|} = %e\n", plot_task.f_abs_max);
         pthread_mutex_unlock(&p_mutex);
-        updateMenuTitle();
+        //updateMenuTitle();
     }
 }
 
